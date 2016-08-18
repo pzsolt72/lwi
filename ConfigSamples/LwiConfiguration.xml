@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tns:lwiConfiguration xmlns:tns="http://telekom.hu/LwiConfiguration" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://telekom.hu/LwiConfiguration LwiConfiguration.xsd ">
+  <tns:log>
+    <tns:detail>FULL</tns:detail>
+  </tns:log>
+  <tns:callers>
+    <tns:callerApplication>
+      <tns:name>tns:name</tns:name>
+    </tns:callerApplication>
+  </tns:callers>
+  <tns:services>
+    <tns:service>
+      <tns:name>tns:name</tns:name>
+      <tns:providerName>tns:providerName</tns:providerName>
+      <tns:proxyService>tns:proxyService</tns:proxyService>
+      <tns:businessService>tns:businessService</tns:businessService>
+      <tns:validationType>CTX</tns:validationType>
+      <tns:maxRequests>0</tns:maxRequests>
+      <tns:requestQueueLength>0</tns:requestQueueLength>
+      <tns:allowedCallers/>
+    </tns:service>
+  </tns:services>
+</tns:lwiConfiguration>
