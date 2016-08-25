@@ -201,7 +201,7 @@
 				</filter>
                 <filter name="request-limit2-filter" module="hu.telekom.lwi" class-name="hu.telekom.lwi.plugin.limit.RequestLimitHandler">
 					<param name="maximumConcurrentRequests" value="2"/> 
-					<param name="queueSize" value="0"/> 
+					<param name="queueSize" value="0"/>  <!-- means unlimited queue -->
 				</filter>
                 <filter name="hello-filter" module="hu.telekom.lwi" class-name="hu.telekom.lwi.plugin.hello.HelloPlugin"/>
             </filters>
