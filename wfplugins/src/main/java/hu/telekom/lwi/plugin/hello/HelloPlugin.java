@@ -4,6 +4,7 @@ import org.jboss.logging.Logger;
 
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
+import io.undertow.util.QueryParameterUtils;
 
 
 /**
@@ -31,9 +32,13 @@ public class HelloPlugin implements HttpHandler {
 	@Override
 	public void handleRequest(HttpServerExchange exchange) throws Exception {
 
-		
-		//System.out.println("Hello " + exchange.getRequestURI() + " request!");
 		logger.info("Hello " + exchange.getRequestURI() + " request!");
+		
+		try {
+			long delay = Long.valueOf(exchange.getQueryParameters().get("delay").peek());
+			logger.info("Delayed for "+delay+"ms");
+			Thread.sleep(delay);
+		} catch (Exception e) {}
 		
 		// Perform the exchange
         next.handleRequest(exchange);
