@@ -20,6 +20,8 @@ public class MessageLogHandler implements HttpHandler {
 	private static final Logger log = Logger.getLogger(MessageLogHandler.class);
 	private static final Logger messageLog = Logger.getLogger("hu.telekom.lwi.message.log");
 	
+	private static final String CLEANSE_REGEX = "(\n|\t|\r|\\s{2,})";
+	
 	private HttpHandler next;
 	
 	private MessageLogLevel logLevel = MessageLogLevel.CTX;
@@ -34,7 +36,11 @@ public class MessageLogHandler implements HttpHandler {
 		
 		String[] requestPath = exchange.getRequestPath().split("/");
 		
-		String caller = "#CALLER#";
+		String caller = MessageLogAttribute.EMPTY;
+		if (exchange.getSecurityContext() != null && exchange.getSecurityContext().getAuthenticatedAccount() != null && exchange.getSecurityContext().getAuthenticatedAccount().getPrincipal() != null) {
+			caller = exchange.getSecurityContext().getAuthenticatedAccount().getPrincipal().getName();
+		}
+		
 		String provider = requestPath.length >= 2 ? requestPath[1] : MessageLogAttribute.EMPTY;
 		String operation = requestPath.length >= 3 ? requestPath[2] : MessageLogAttribute.EMPTY;
 		
@@ -52,7 +58,7 @@ public class MessageLogHandler implements HttpHandler {
 			responseLogMessage.append(String.format("[RequestId: %s CorrelationId: %s UserId: %s]", requestId, correlationId, userId));
 			
 			if (logLevel == MessageLogLevel.FULL) {
-				requestLogMessage.append(String.format("[%s]", message.replaceAll("\n", "")));
+				requestLogMessage.append(String.format("[%s]", message.replaceAll(CLEANSE_REGEX, "")));
 			}
 		}
 
@@ -62,7 +68,7 @@ public class MessageLogHandler implements HttpHandler {
 
 		if (logLevel == MessageLogLevel.FULL) {
 			String message = "#RESPONSE#";
-			responseLogMessage.append(String.format("[%s]", message.replaceAll("\n", "")));
+			responseLogMessage.append(String.format("[%s]", message.replaceAll(CLEANSE_REGEX, "")));
 		}
 
 		messageLog.info(responseLogMessage);
@@ -81,7 +87,7 @@ public class MessageLogHandler implements HttpHandler {
 			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 			doc = dBuilder.parse(new ByteArrayInputStream(message.getBytes()));
 		} catch (Exception e) {
-			log.warn("Unable to parse soap message", e);
+			// not a soap message
 		}
 		
 		if ((doc != null && (  
@@ -106,7 +112,7 @@ public class MessageLogHandler implements HttpHandler {
 				return value;
 			}
 		} catch (Exception e) {
-			log.error("Unable to parse new osb soap message", e);
+			log.error("Unable to parse general soap message", e);
 		}
 		return null;
 	}
@@ -132,7 +138,7 @@ public class MessageLogHandler implements HttpHandler {
 				return value;
 			}
 		} catch (Exception e) {
-			log.error("Unable to parse new osb soap message", e);
+			log.error("Unable to parse tech osb soap message", e);
 		}
 		return null;
 	}
