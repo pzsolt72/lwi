@@ -4,6 +4,7 @@ import org.jboss.logging.Logger;
 
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
+import io.undertow.server.handlers.ResponseCodeHandler;
 import io.undertow.util.QueryParameterUtils;
 
 
@@ -41,7 +42,8 @@ public class HelloPlugin implements HttpHandler {
 		} catch (Exception e) {}
 		
 		// Perform the exchange
-        next.handleRequest(exchange);
+		ResponseCodeHandler.HANDLE_200.handleRequest(exchange);
+//        next.handleRequest(exchange);
 	}
 
 }
