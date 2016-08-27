@@ -42,8 +42,7 @@ public class HelloPlugin implements HttpHandler {
 		} catch (Exception e) {}
 		
 		// Perform the exchange
-		ResponseCodeHandler.HANDLE_200.handleRequest(exchange);
-//        next.handleRequest(exchange);
+        next.handleRequest(exchange);
 	}
 
 }

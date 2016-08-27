@@ -66,6 +66,8 @@ public class MessageLogHandler implements HttpHandler {
 	
 		next.handleRequest(exchange);
 
+		log.info(String.format("MessageLogHandler.handleRequest returned (%s, %d)", logLevel.name(), exchange.getResponseContentLength()));
+
 		if (logLevel == MessageLogLevel.FULL) {
 			String message = "#RESPONSE#";
 			responseLogMessage.append(String.format("[%s]", message.replaceAll(CLEANSE_REGEX, "")));
