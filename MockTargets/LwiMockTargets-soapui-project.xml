@@ -345,7 +345,7 @@
       <s2:address location="http://slong1:17011/cnrwebservice/GetMsisdn_V4"/>
     </s0:port>
   </s0:service>
-</s0:definitions>]]></con:content><con:type>http://schemas.xmlsoap.org/wsdl/</con:type></con:part></con:definitionCache><con:endpoints><con:endpoint>http://localhost:8091/LwiMockTargets/GetMsisdn</con:endpoint><con:endpoint>http://slong1:17011/cnrwebservice/GetMsisdn_V4</con:endpoint></con:endpoints><con:operation id="9ec26137-2540-403c-828f-44aabc15220f" isOneWay="false" action="" name="GetMsisdnV4" bindingOperationName="GetMsisdnV4" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call id="d19d7a24-a080-4cc2-87a8-9c452581ac26" name="Request 1"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8091/LwiMockTargets/GetMsisdn</con:endpoint><con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:open="http://www.openuri.org/" xmlns:num="http://cnr.interfaceobject.ugyfelszolgfoly.bpm.mt.hu/NumberInterface" xmlns:com="http://mt.hu/common_v1">\r
+</s0:definitions>]]></con:content><con:type>http://schemas.xmlsoap.org/wsdl/</con:type></con:part></con:definitionCache><con:endpoints><con:endpoint>http://localhost:8192//lwi/cnr/getMsisdn</con:endpoint></con:endpoints><con:operation id="9ec26137-2540-403c-828f-44aabc15220f" isOneWay="false" action="" name="GetMsisdnV4" bindingOperationName="GetMsisdnV4" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call id="d19d7a24-a080-4cc2-87a8-9c452581ac26" name="Request 1"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:444/lwi/cnr/getMsisdn</con:endpoint><con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:open="http://www.openuri.org/" xmlns:num="http://cnr.interfaceobject.ugyfelszolgfoly.bpm.mt.hu/NumberInterface" xmlns:com="http://mt.hu/common_v1">\r
    <soapenv:Header/>\r
    <soapenv:Body>\r
       <open:getMsisdn_V4>\r
@@ -29469,42 +29469,474 @@ When one Single Trouble Ticket is used for consolidation of multiple order failu
       <s3:address location="http://slong1:7033/estorequerydoc/QueryProducedDocumentList"/>
     </s0:port>
   </s0:service>
-</s0:definitions>]]></con:content><con:type>http://schemas.xmlsoap.org/wsdl/</con:type></con:part></con:definitionCache><con:endpoints><con:endpoint>http://localhost:8091/LwiMockTargets/Qpdl</con:endpoint><con:endpoint>http://slong1:7033/estorequerydoc/QueryProducedDocumentList</con:endpoint></con:endpoints><con:operation id="91f3f789-3f51-4f72-b613-a705fb43f8a5" isOneWay="false" action="" name="QueryProducedDocumentList" bindingOperationName="QueryProducedDocumentList" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call id="5022f7be-7b4a-4aa3-8b85-244bbae45f1d" name="Request 1"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8091/LwiMockTargets/Qpdl</con:endpoint><con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://xmlns.telekom.com/ng/EnterpriseServices/Core/ProducedDocument/V1/services/" xmlns:dat="http://messaging.ei.tmobile.net/datatypes" xmlns:v1="http://xmlns.oracle.com/EnterpriseObjects/Core/EBO/ProducedDocument/V1" xmlns:v2="http://xmlns.oracle.com/EnterpriseObjects/Core/Common/V2" xmlns:add="http://schemas.xmlsoap.org/ws/2003/03/addressing" xmlns:urn="urn:oasis:names:tc:xacml:2.0:context:schema:cd:04">
-   <soapenv:Header/>
-   <soapenv:Body>
-      <ser:QueryProducedDocumentList>
-         <ser:eiMessageContext>
-            <dat:sender>soapui</dat:sender>
-            <dat:correlationId>123456789</dat:correlationId>
-         </ser:eiMessageContext>
-         <ser:data>
-            <v1:QueryProducedDocumentListEBM versionID="?" languageCode="en-US">
-               <v2:EBMHeader></v2:EBMHeader>
-               <v1:DataArea>
-                  <v1:Query>
-                     <v1:QueryCode>LIST</v1:QueryCode>
-                     <v2:QueryCriteria>
-                        <v2:QueryExpression logicalOperatorCode="AND">
-                           <v2:ValueExpression queryOperatorCode="EQUALS">
-                              <v2:ElementPath>DOCUMENTTYPE</v2:ElementPath>
-                              <v2:Value>JAZZMBI</v2:Value>
-                           </v2:ValueExpression>
-                           <v2:ValueExpression queryOperatorCode="EQUALS">
-                              <v2:ElementPath>META/MTID</v2:ElementPath>
-                              <v2:Value>310897831</v2:Value>
-                           </v2:ValueExpression>
-                            <v2:ValueExpression queryOperatorCode="EQUALS">
-                              <v2:ElementPath>FROM_DATE</v2:ElementPath>
-                              <v2:Value>2005.06.20. 00:00:00</v2:Value>
-                           </v2:ValueExpression>                           
-                        </v2:QueryExpression>
-                     </v2:QueryCriteria>
-                  </v1:Query>
-               </v1:DataArea>
-            </v1:QueryProducedDocumentListEBM>
-         </ser:data>
-      </ser:QueryProducedDocumentList>
-   </soapenv:Body>
+</s0:definitions>]]></con:content><con:type>http://schemas.xmlsoap.org/wsdl/</con:type></con:part></con:definitionCache><con:endpoints><con:endpoint>http://localhost:8192/lwi/estore/qpdl</con:endpoint></con:endpoints><con:operation id="91f3f789-3f51-4f72-b613-a705fb43f8a5" isOneWay="false" action="" name="QueryProducedDocumentList" bindingOperationName="QueryProducedDocumentList" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call id="5022f7be-7b4a-4aa3-8b85-244bbae45f1d" name="Request 1"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8192/lwi/estore/qpdl</con:endpoint><con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://xmlns.telekom.com/ng/EnterpriseServices/Core/ProducedDocument/V1/services/" xmlns:dat="http://messaging.ei.tmobile.net/datatypes" xmlns:v1="http://xmlns.oracle.com/EnterpriseObjects/Core/EBO/ProducedDocument/V1" xmlns:v2="http://xmlns.oracle.com/EnterpriseObjects/Core/Common/V2" xmlns:add="http://schemas.xmlsoap.org/ws/2003/03/addressing" xmlns:urn="urn:oasis:names:tc:xacml:2.0:context:schema:cd:04">\r
+   <soapenv:Header/>\r
+   <soapenv:Body>\r
+      <ser:QueryProducedDocumentList>\r
+         <ser:eiMessageContext>\r
+            <dat:requestId>123456789</dat:requestId>\r
+            <dat:sender>soapui</dat:sender>\r
+            <dat:correlationId>123456789</dat:correlationId>\r
+         </ser:eiMessageContext>\r
+         <ser:data>\r
+            <v1:QueryProducedDocumentListEBM versionID="?" languageCode="en-US">\r
+               <v2:EBMHeader/>\r
+               <v1:DataArea>\r
+                  <v1:Query>\r
+                     <v1:QueryCode>LIST</v1:QueryCode>\r
+                     <v2:QueryCriteria>\r
+                        <v2:QueryExpression logicalOperatorCode="AND">\r
+                           <v2:ValueExpression queryOperatorCode="EQUALS">\r
+                              <v2:ElementPath>DOCUMENTTYPE</v2:ElementPath>\r
+                              <v2:Value>JAZZMBI</v2:Value>\r
+                           </v2:ValueExpression>\r
+                           <v2:ValueExpression queryOperatorCode="EQUALS">\r
+                              <v2:ElementPath>META/MTID</v2:ElementPath>\r
+                              <v2:Value>310897831</v2:Value>\r
+                           </v2:ValueExpression>\r
+                           <v2:ValueExpression queryOperatorCode="EQUALS">\r
+                              <v2:ElementPath>FROM_DATE</v2:ElementPath>\r
+                              <v2:Value>2005.06.20. 00:00:00</v2:Value>\r
+                           </v2:ValueExpression>\r
+                        </v2:QueryExpression>\r
+                     </v2:QueryCriteria>\r
+                  </v1:Query>\r
+               </v1:DataArea>\r
+            </v1:QueryProducedDocumentListEBM>\r
+         </ser:data>\r
+      </ser:QueryProducedDocumentList>\r
+   </soapenv:Body>\r
+</soapenv:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://estore.tmobile.hu/soaif/QueryProducedDocumentListPortType/QueryProducedDocumentListRequest"/><con:wsrmConfig version="1.2"/></con:call><con:call id="bba14f0d-a0b2-43b9-8420-68234b0f0d45" name="Request 2"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8192/lwi/estore/qpdl</con:endpoint><con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://xmlns.telekom.com/ng/EnterpriseServices/Core/ProducedDocument/V1/services/" xmlns:dat="http://messaging.ei.tmobile.net/datatypes" xmlns:v1="http://xmlns.oracle.com/EnterpriseObjects/Core/EBO/ProducedDocument/V1" xmlns:v2="http://xmlns.oracle.com/EnterpriseObjects/Core/Common/V2" xmlns:add="http://schemas.xmlsoap.org/ws/2003/03/addressing" xmlns:urn="urn:oasis:names:tc:xacml:2.0:context:schema:cd:04">\r
+   <soapenv:Header/>\r
+   <soapenv:Body>\r
+      <ser:QueryProducedDocumentList>\r
+         <ser:eiMessageContext>\r
+            <!--Optional:-->\r
+            <dat:target>?</dat:target>\r
+            <!--Optional:-->\r
+            <dat:replyTo>?</dat:replyTo>\r
+            <!--Optional:-->\r
+            <dat:requestId>?</dat:requestId>\r
+            <!--Optional:-->\r
+            <dat:timeLeft>?</dat:timeLeft>\r
+            <!--Optional:-->\r
+            <dat:priority>?</dat:priority>\r
+            <!--Optional:-->\r
+            <dat:redelivered>?</dat:redelivered>\r
+            <!--Optional:-->\r
+            <dat:revision>?</dat:revision>\r
+            <dat:sender>?</dat:sender>\r
+            <dat:correlationId>?</dat:correlationId>\r
+            <!--Optional:-->\r
+            <dat:sequenceId>?</dat:sequenceId>\r
+            <!--Optional:-->\r
+            <dat:properties>\r
+               <!--1 or more repetitions:-->\r
+               <dat:property dat:name="?" dat:policy="?" dat:mustUnderstand="false" dat:type="?">?</dat:property>\r
+            </dat:properties>\r
+         </ser:eiMessageContext>\r
+         <ser:data>\r
+            <v1:QueryProducedDocumentListEBM versionID="?" languageCode="en-US">\r
+               <v2:EBMHeader languageCode="?">\r
+                  <!--Optional:-->\r
+                  <v2:EBMID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:EBMID>\r
+                  <!--Zero or more repetitions:-->\r
+                  <v2:EBMName languageCode="?" languageLocaleCode="?">?</v2:EBMName>\r
+                  <!--Zero or more repetitions:-->\r
+                  <v2:EBOName languageCode="?" languageLocaleCode="?">?</v2:EBOName>\r
+                  <!--Optional:-->\r
+                  <v2:CreationDateTime>?</v2:CreationDateTime>\r
+                  <!--Optional:-->\r
+                  <v2:RequestEBMID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:RequestEBMID>\r
+                  <!--Optional:-->\r
+                  <v2:VerbCode listID="?" listAgencyID="?" listVersionID="?">?</v2:VerbCode>\r
+                  <!--Optional:-->\r
+                  <v2:MessageProcessingInstruction>\r
+                     <!--Optional:-->\r
+                     <v2:EnvironmentCode listID="?" listAgencyID="?" listVersionID="?">?</v2:EnvironmentCode>\r
+                     <!--Optional:-->\r
+                     <v2:DefinitionID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:DefinitionID>\r
+                     <!--Optional:-->\r
+                     <v2:InstanceID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:InstanceID>\r
+                     <!--Optional:-->\r
+                     <v2:Custom/>\r
+                  </v2:MessageProcessingInstruction>\r
+                  <!--Optional:-->\r
+                  <v2:Sender>\r
+                     <!--Optional:-->\r
+                     <v2:ID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ID>\r
+                     <!--Zero or more repetitions:-->\r
+                     <v2:Description languageCode="?" languageLocaleCode="?">?</v2:Description>\r
+                     <!--Optional:-->\r
+                     <v2:IPAddress>?</v2:IPAddress>\r
+                     <!--Optional:-->\r
+                     <v2:SenderMessageID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:SenderMessageID>\r
+                     <!--Optional:-->\r
+                     <v2:TransactionCode listID="?" listAgencyID="?" listVersionID="?">?</v2:TransactionCode>\r
+                     <!--Zero or more repetitions:-->\r
+                     <v2:CallingServiceName languageCode="?" languageLocaleCode="?">?</v2:CallingServiceName>\r
+                     <!--Optional:-->\r
+                     <v2:Application>\r
+                        <!--Optional:-->\r
+                        <v2:ID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ID>\r
+                        <!--Optional:-->\r
+                        <v2:Version>?</v2:Version>\r
+                     </v2:Application>\r
+                     <!--Zero or more repetitions:-->\r
+                     <v2:ContactName languageCode="?" languageLocaleCode="?">?</v2:ContactName>\r
+                     <!--Optional:-->\r
+                     <v2:ContactEmail>?</v2:ContactEmail>\r
+                     <!--Optional:-->\r
+                     <v2:ContactPhoneNumber>?</v2:ContactPhoneNumber>\r
+                     <!--Zero or more repetitions:-->\r
+                     <v2:ESBHeaderExtension>\r
+                        <!--Zero or more repetitions:-->\r
+                        <v2:Name languageCode="?" languageLocaleCode="?">?</v2:Name>\r
+                        <!--Optional:-->\r
+                        <v2:DataTypeCode listID="?" listAgencyID="?" listVersionID="?">?</v2:DataTypeCode>\r
+                        <!--Zero or more repetitions:-->\r
+                        <v2:Value>?</v2:Value>\r
+                     </v2:ESBHeaderExtension>\r
+                     <!--Zero or more repetitions:-->\r
+                     <v2:ObjectCrossReference>\r
+                        <!--Optional:-->\r
+                        <v2:SenderObjectIdentification>\r
+                           <!--Optional:-->\r
+                           <v2:BusinessComponentID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:BusinessComponentID>\r
+                           <!--Optional:-->\r
+                           <v2:ID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ID>\r
+                           <!--Zero or more repetitions:-->\r
+                           <v2:ContextID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ContextID>\r
+                           <!--Optional:-->\r
+                           <v2:ApplicationObjectKey>\r
+                              <!--Optional:-->\r
+                              <v2:ID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ID>\r
+                              <!--Zero or more repetitions:-->\r
+                              <v2:ContextID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ContextID>\r
+                           </v2:ApplicationObjectKey>\r
+                           <!--Zero or more repetitions:-->\r
+                           <v2:AlternateObjectKey>\r
+                              <!--Optional:-->\r
+                              <v2:ID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ID>\r
+                              <!--Zero or more repetitions:-->\r
+                              <v2:ContextID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ContextID>\r
+                           </v2:AlternateObjectKey>\r
+                           <!--Optional:-->\r
+                           <v2:Revision>\r
+                              <!--Optional:-->\r
+                              <v2:Number schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:Number>\r
+                              <!--Zero or more repetitions:-->\r
+                              <v2:Description languageCode="?" languageLocaleCode="?">?</v2:Description>\r
+                              <!--Optional:-->\r
+                              <v2:Code listID="?" listAgencyID="?" listVersionID="?">?</v2:Code>\r
+                              <!--Optional:-->\r
+                              <v2:EffectiveDate>?</v2:EffectiveDate>\r
+                              <!--Optional:-->\r
+                              <v2:EffectiveEndDate>?</v2:EffectiveEndDate>\r
+                              <!--Zero or more repetitions:-->\r
+                              <v2:Label languageCode="?" languageLocaleCode="?">?</v2:Label>\r
+                              <!--Zero or more repetitions:-->\r
+                              <v2:Reason languageCode="?" languageLocaleCode="?">?</v2:Reason>\r
+                           </v2:Revision>\r
+                        </v2:SenderObjectIdentification>\r
+                        <!--Optional:-->\r
+                        <v2:EBOID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:EBOID>\r
+                     </v2:ObjectCrossReference>\r
+                     <!--Optional:-->\r
+                     <v2:WSAddress>\r
+                        <!--Optional:-->\r
+                        <add:From>\r
+                           <add:Address>?</add:Address>\r
+                           <!--Optional:-->\r
+                           <add:ReferenceProperties>\r
+                              <!--You may enter ANY elements at this point-->\r
+                           </add:ReferenceProperties>\r
+                           <!--Optional:-->\r
+                           <add:PortType>?</add:PortType>\r
+                           <!--Optional:-->\r
+                           <add:ServiceName PortName="?">?</add:ServiceName>\r
+                           <!--You may enter ANY elements at this point-->\r
+                        </add:From>\r
+                        <!--Optional:-->\r
+                        <add:To>?</add:To>\r
+                        <!--Optional:-->\r
+                        <add:ReplyTo>\r
+                           <add:Address>?</add:Address>\r
+                           <!--Optional:-->\r
+                           <add:ReferenceProperties>\r
+                              <!--You may enter ANY elements at this point-->\r
+                           </add:ReferenceProperties>\r
+                           <!--Optional:-->\r
+                           <add:PortType>?</add:PortType>\r
+                           <!--Optional:-->\r
+                           <add:ServiceName PortName="?">?</add:ServiceName>\r
+                           <!--You may enter ANY elements at this point-->\r
+                        </add:ReplyTo>\r
+                        <!--Optional:-->\r
+                        <add:FaultTo>\r
+                           <add:Address>?</add:Address>\r
+                           <!--Optional:-->\r
+                           <add:ReferenceProperties>\r
+                              <!--You may enter ANY elements at this point-->\r
+                           </add:ReferenceProperties>\r
+                           <!--Optional:-->\r
+                           <add:PortType>?</add:PortType>\r
+                           <!--Optional:-->\r
+                           <add:ServiceName PortName="?">?</add:ServiceName>\r
+                           <!--You may enter ANY elements at this point-->\r
+                        </add:FaultTo>\r
+                        <!--Optional:-->\r
+                        <add:Recipient>\r
+                           <add:Address>?</add:Address>\r
+                           <!--Optional:-->\r
+                           <add:ReferenceProperties>\r
+                              <!--You may enter ANY elements at this point-->\r
+                           </add:ReferenceProperties>\r
+                           <!--Optional:-->\r
+                           <add:PortType>?</add:PortType>\r
+                           <!--Optional:-->\r
+                           <add:ServiceName PortName="?">?</add:ServiceName>\r
+                           <!--You may enter ANY elements at this point-->\r
+                        </add:Recipient>\r
+                     </v2:WSAddress>\r
+                     <!--Optional:-->\r
+                     <v2:Custom/>\r
+                  </v2:Sender>\r
+                  <!--Optional:-->\r
+                  <v2:Target>\r
+                     <!--Optional:-->\r
+                     <v2:ID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ID>\r
+                     <!--Optional:-->\r
+                     <v2:OverrideRoutingIndicator>?</v2:OverrideRoutingIndicator>\r
+                     <!--Zero or more repetitions:-->\r
+                     <v2:ServiceName languageCode="?" languageLocaleCode="?">?</v2:ServiceName>\r
+                     <!--Optional:-->\r
+                     <v2:ApplicationTypeCode listID="?" listAgencyID="?" listVersionID="?">?</v2:ApplicationTypeCode>\r
+                     <!--Optional:-->\r
+                     <v2:EndPointURI>?</v2:EndPointURI>\r
+                     <!--Optional:-->\r
+                     <v2:Custom/>\r
+                  </v2:Target>\r
+                  <!--Zero or more repetitions:-->\r
+                  <v2:BusinessScope>\r
+                     <!--Optional:-->\r
+                     <v2:ID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ID>\r
+                     <!--Optional:-->\r
+                     <v2:InstanceID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:InstanceID>\r
+                     <!--Optional:-->\r
+                     <v2:BusinessScopeTypeCode listID="?" listAgencyID="?" listVersionID="?">?</v2:BusinessScopeTypeCode>\r
+                     <!--Zero or more repetitions:-->\r
+                     <v2:EnterpriseServiceName languageCode="?" languageLocaleCode="?">?</v2:EnterpriseServiceName>\r
+                     <!--Optional:-->\r
+                     <v2:EnterpriseServiceOperationName listID="?" listAgencyID="?" listVersionID="?">?</v2:EnterpriseServiceOperationName>\r
+                     <!--Optional:-->\r
+                     <v2:Custom/>\r
+                  </v2:BusinessScope>\r
+                  <!--Zero or more repetitions:-->\r
+                  <v2:EBMTracking>\r
+                     <!--Optional:-->\r
+                     <v2:SequenceNumber>?</v2:SequenceNumber>\r
+                     <!--Optional:-->\r
+                     <v2:ExecutionUnitID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ExecutionUnitID>\r
+                     <!--Zero or more repetitions:-->\r
+                     <v2:ExecutionUnitName languageCode="?" languageLocaleCode="?">?</v2:ExecutionUnitName>\r
+                     <!--Optional:-->\r
+                     <v2:ImplementationCode>?</v2:ImplementationCode>\r
+                     <!--Optional:-->\r
+                     <v2:ActivityDateTime>?</v2:ActivityDateTime>\r
+                     <!--Optional:-->\r
+                     <v2:IntermediateMessageHop>\r
+                        <!--Optional:-->\r
+                        <v2:SenderResourceTypeCode listID="?" listAgencyID="?" listVersionID="?">?</v2:SenderResourceTypeCode>\r
+                        <!--Optional:-->\r
+                        <v2:SenderResourceID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:SenderResourceID>\r
+                        <!--Optional:-->\r
+                        <v2:SenderMessageID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:SenderMessageID>\r
+                        <!--Optional:-->\r
+                        <v2:Custom/>\r
+                     </v2:IntermediateMessageHop>\r
+                     <!--Optional:-->\r
+                     <v2:Custom/>\r
+                  </v2:EBMTracking>\r
+                  <!--Zero or more repetitions:-->\r
+                  <v2:FaultNotification>\r
+                     <!--Optional:-->\r
+                     <v2:BusinessComponentID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:BusinessComponentID>\r
+                     <!--Optional:-->\r
+                     <v2:ReportingDateTime>?</v2:ReportingDateTime>\r
+                     <!--Zero or more repetitions:-->\r
+                     <v2:CorrectiveAction languageCode="?" languageLocaleCode="?">?</v2:CorrectiveAction>\r
+                     <!--Optional:-->\r
+                     <v2:FaultMessage>\r
+                        <!--Optional:-->\r
+                        <v2:Code listID="?" listAgencyID="?" listVersionID="?">?</v2:Code>\r
+                        <!--Zero or more repetitions:-->\r
+                        <v2:Text languageCode="?" languageLocaleCode="?">?</v2:Text>\r
+                        <!--Optional:-->\r
+                        <v2:Severity listID="?" listAgencyID="?" listVersionID="?">?</v2:Severity>\r
+                        <!--Zero or more repetitions:-->\r
+                        <v2:Stack languageCode="?" languageLocaleCode="?">?</v2:Stack>\r
+                        <!--Optional:-->\r
+                        <v2:ApplicationFaultData>?</v2:ApplicationFaultData>\r
+                        <!--Optional:-->\r
+                        <v2:IntermediateMessageHop>\r
+                           <!--Optional:-->\r
+                           <v2:SenderResourceTypeCode listID="?" listAgencyID="?" listVersionID="?">?</v2:SenderResourceTypeCode>\r
+                           <!--Optional:-->\r
+                           <v2:SenderResourceID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:SenderResourceID>\r
+                           <!--Optional:-->\r
+                           <v2:SenderMessageID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:SenderMessageID>\r
+                           <!--Optional:-->\r
+                           <v2:Custom/>\r
+                        </v2:IntermediateMessageHop>\r
+                     </v2:FaultMessage>\r
+                     <!--Optional:-->\r
+                     <v2:FaultingService>\r
+                        <!--Optional:-->\r
+                        <v2:ID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ID>\r
+                        <!--Optional:-->\r
+                        <v2:ImplementationCode>?</v2:ImplementationCode>\r
+                        <!--Optional:-->\r
+                        <v2:InstanceID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:InstanceID>\r
+                        <!--Optional:-->\r
+                        <v2:ExecutionContextID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ExecutionContextID>\r
+                     </v2:FaultingService>\r
+                  </v2:FaultNotification>\r
+                  <!--Optional:-->\r
+                  <v2:MessageBatch>\r
+                     <!--Optional:-->\r
+                     <v2:ID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:ID>\r
+                     <!--Optional:-->\r
+                     <v2:Name languageCode="?" languageLocaleCode="?">?</v2:Name>\r
+                     <!--Optional:-->\r
+                     <v2:StatusCode listID="?" listAgencyID="?" listVersionID="?">?</v2:StatusCode>\r
+                     <!--Optional:-->\r
+                     <v2:ResponseMessage languageCode="?" languageLocaleCode="?">?</v2:ResponseMessage>\r
+                     <!--Zero or more repetitions:-->\r
+                     <v2:BatchParameter>\r
+                        <!--Optional:-->\r
+                        <v2:Name languageCode="?" languageLocaleCode="?">?</v2:Name>\r
+                        <!--Optional:-->\r
+                        <v2:DataTypeCode listID="?" listAgencyID="?" listVersionID="?">?</v2:DataTypeCode>\r
+                        <!--Optional:-->\r
+                        <v2:Value>?</v2:Value>\r
+                     </v2:BatchParameter>\r
+                  </v2:MessageBatch>\r
+                  <!--Optional:-->\r
+                  <urn:Request>\r
+                     <!--1 or more repetitions:-->\r
+                     <urn:Subject SubjectCategory="urn:oasis:names:tc:xacml:1.0:subject-category:access-subject">\r
+                        <!--Zero or more repetitions:-->\r
+                        <urn:Attribute AttributeId="?" DataType="?" Issuer="?">\r
+                           <!--1 or more repetitions:-->\r
+                           <urn:AttributeValue>\r
+                              e\r
+                              <!--You may enter ANY elements at this point-->\r
+                              gero\r
+                           </urn:AttributeValue>\r
+                        </urn:Attribute>\r
+                     </urn:Subject>\r
+                     <!--1 or more repetitions:-->\r
+                     <urn:Resource>\r
+                        <!--Optional:-->\r
+                        <urn:ResourceContent>\r
+                           cum\r
+                           <!--You may enter ANY elements at this point-->\r
+                           sonoras\r
+                        </urn:ResourceContent>\r
+                        <!--Zero or more repetitions:-->\r
+                        <urn:Attribute AttributeId="?" DataType="?" Issuer="?">\r
+                           <!--1 or more repetitions:-->\r
+                           <urn:AttributeValue>\r
+                              aeoliam\r
+                              <!--You may enter ANY elements at this point-->\r
+                              quae\r
+                           </urn:AttributeValue>\r
+                        </urn:Attribute>\r
+                     </urn:Resource>\r
+                     <urn:Action>\r
+                        <!--Zero or more repetitions:-->\r
+                        <urn:Attribute AttributeId="?" DataType="?" Issuer="?">\r
+                           <!--1 or more repetitions:-->\r
+                           <urn:AttributeValue>\r
+                              ventos\r
+                              <!--You may enter ANY elements at this point-->\r
+                              verrantque\r
+                           </urn:AttributeValue>\r
+                        </urn:Attribute>\r
+                     </urn:Action>\r
+                     <urn:Environment>\r
+                        <!--Zero or more repetitions:-->\r
+                        <urn:Attribute AttributeId="?" DataType="?" Issuer="?">\r
+                           <!--1 or more repetitions:-->\r
+                           <urn:AttributeValue>\r
+                              temperat\r
+                              <!--You may enter ANY elements at this point-->\r
+                              per\r
+                           </urn:AttributeValue>\r
+                        </urn:Attribute>\r
+                     </urn:Environment>\r
+                  </urn:Request>\r
+                  <!--Optional:-->\r
+                  <v2:B2BProfile>\r
+                     <!--Optional:-->\r
+                     <v2:SenderTradingPartner>\r
+                        <!--Zero or more repetitions:-->\r
+                        <v2:TradingPartnerID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:TradingPartnerID>\r
+                        <!--Optional:-->\r
+                        <v2:Custom/>\r
+                     </v2:SenderTradingPartner>\r
+                     <!--Zero or more repetitions:-->\r
+                     <v2:ReceiverTradingPartner>\r
+                        <!--Zero or more repetitions:-->\r
+                        <v2:TradingPartnerID schemeID="?" schemeAgencyID="?" schemeVersionID="?">?</v2:TradingPartnerID>\r
+                        <!--Optional:-->\r
+                        <v2:Custom/>\r
+                     </v2:ReceiverTradingPartner>\r
+                     <!--Optional:-->\r
+                     <v2:Custom/>\r
+                  </v2:B2BProfile>\r
+                  <!--Optional:-->\r
+                  <v2:Custom/>\r
+               </v2:EBMHeader>\r
+               <!--1 or more repetitions:-->\r
+               <v1:DataArea>\r
+                  <!--Optional:-->\r
+                  <v1:Query getAllTranslationsIndicator="?" recordSetStart="?" recordSetCount="?" maxItems="?">\r
+                     <!--Optional:-->\r
+                     <v1:QueryCode listID="?" listAgencyID="?" listVersionID="?">?</v1:QueryCode>\r
+                     <!--Optional:-->\r
+                     <v1:ResponseCode listID="?" listAgencyID="?" listVersionID="?">?</v1:ResponseCode>\r
+                     <!--Zero or more repetitions:-->\r
+                     <v2:QueryCriteria>\r
+                        <!--Optional:-->\r
+                        <v2:QualifiedElementPath>?</v2:QualifiedElementPath>\r
+                        <!--Optional:-->\r
+                        <v2:QueryExpression logicalOperatorCode="AND" logicalNegationIndicator="?">\r
+                           <!--You have a CHOICE of the next 2 items at this level-->\r
+                           <!--Zero or more repetitions:-->\r
+                           <v2:ValueExpression queryOperatorCode="EQUALS">\r
+                              <v2:ElementPath>?</v2:ElementPath>\r
+                              <!--Zero or more repetitions:-->\r
+                              <v2:Value>?</v2:Value>\r
+                           </v2:ValueExpression>\r
+                           <!--Zero or more repetitions:-->\r
+                           <v2:QueryExpression/>\r
+                        </v2:QueryExpression>\r
+                        <!--Zero or more repetitions:-->\r
+                        <v2:SortElement sortDirectionCode="ASC">?</v2:SortElement>\r
+                     </v2:QueryCriteria>\r
+                     <!--Optional:-->\r
+                     <v2:ResponseFilter exclusionIndicator="?">\r
+                        <!--1 or more repetitions:-->\r
+                        <v2:QualifiedElementPath>?</v2:QualifiedElementPath>\r
+                     </v2:ResponseFilter>\r
+                  </v1:Query>\r
+               </v1:DataArea>\r
+            </v1:QueryProducedDocumentListEBM>\r
+         </ser:data>\r
+      </ser:QueryProducedDocumentList>\r
+   </soapenv:Body>\r
 </soapenv:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://estore.tmobile.hu/soaif/QueryProducedDocumentListPortType/QueryProducedDocumentListRequest"/><con:wsrmConfig version="1.2"/></con:call></con:operation></con:interface><con:interface xsi:type="con:WsdlInterface" id="bc959067-b664-4106-93c3-633f6ef7ec7f" wsaVersion="NONE" name="ESTORE_getPutListInvalid" type="wsdl" bindingName="{http://estore.tmobile.hu/onlineif}EstoreServiceSoapBinding" soapVersion="1_1" anonymous="optional" definition="http://slong1:17011/estorewebservice/EstoreService?wsdl" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:settings/><con:definitionCache type="TEXT" rootPart="http://slong1:17011/estorewebservice/EstoreService?wsdl"><con:part><con:url>http://slong1:17011/estorewebservice/EstoreService?wsdl</con:url><con:content><![CDATA[<s0:definitions name="EstoreServiceDefinitions" targetNamespace="http://estore.tmobile.hu/onlineif" xmlns:s0="http://schemas.xmlsoap.org/wsdl/" xmlns:s1="java:hu.westel.estore.onlineif.bean" xmlns:s2="http://www.bea.com/servers/wls90/wsee/attachment" xmlns:s3="http://estore.tmobile.hu/onlineif" xmlns:s4="http://schemas.xmlsoap.org/wsdl/soap/">
   <s0:types>
     <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="java:java.util" xmlns:xs="http://www.w3.org/2001/XMLSchema">
@@ -29761,7 +30193,58 @@ When one Single Trouble Ticket is used for consolidation of multiple order failu
          </PutDocumentRequestInput>\r
       </onl:PutDocument>\r
    </soapenv:Body>\r
-</soapenv:Envelope>]]></con:request><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://estore.tmobile.hu/onlineif/EstoreServicePortType/PutDocumentRequest"/></con:call></con:operation></con:interface><con:mockService id="e2256006-5e78-4688-822b-7e0b465fff06" port="8092" path="/GetDocument" host="COMDEV-WLS-07" name="LwiMockGetDocument" bindToHostOnly="false" docroot=""><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.mock.WsdlMockService@require-soap-action">false</con:setting></con:settings><con:properties/><con:mockOperation name="GetDocument" id="4703e29c-e1e5-4a4a-8645-be45211ef6c5" interface="ESTORE_getPutListInvalid" operation="GetDocument"><con:settings/><con:defaultResponse>Response 1</con:defaultResponse><con:dispatchStyle>SEQUENCE</con:dispatchStyle><con:response name="Response 1" id="38d6ddf1-b8e0-4f67-97c6-b03ce066cebc" httpResponseStatus="200" encoding="UTF-8"><con:settings/><con:responseContent><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+</soapenv:Envelope>]]></con:request><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://estore.tmobile.hu/onlineif/EstoreServicePortType/PutDocumentRequest"/></con:call></con:operation></con:interface><con:testSuite id="3e100d6c-4350-4a1e-a5e6-1166195a1a6f" name="CNR_getMsisdn TestSuite"><con:settings/><con:runType>SEQUENTIAL</con:runType><con:testCase id="74e5b467-6704-48ae-b4ee-30adfa97b95c" failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="GetMsisdnV4 TestCase" searchProperties="true"><con:settings/><con:testStep type="request" id="615d2e9f-77da-400c-94ec-d4704e597a19" name="GetMsisdnV4"><con:settings/><con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:interface>CNR_getMsisdn</con:interface><con:operation>GetMsisdnV4</con:operation><con:request name="GetMsisdnV4" id="fec44989-5f94-43b1-84a4-0619f39ef538"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8192//lwi/cnr/getMsisdn</con:endpoint><con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:open="http://www.openuri.org/" xmlns:num="http://cnr.interfaceobject.ugyfelszolgfoly.bpm.mt.hu/NumberInterface" xmlns:com="http://mt.hu/common_v1">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <open:getMsisdn_V4>
+         <num:getMsisdn_V4Request>
+            <com:MessageContext>
+               <com:RequestId>12345</com:RequestId>
+               <com:UserId>pzs</com:UserId>
+               <com:TimeLeft>20000</com:TimeLeft>
+               <com:Sender>soapui</com:Sender>
+            </com:MessageContext>
+            <num:msisdn>306406781</num:msisdn>
+         </num:getMsisdn_V4Request>
+      </open:getMsisdn_V4>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request><con:assertion type="Simple Contains" id="0ac475ed-b790-435b-bf8f-5833b6e3dae2" name="Contains"><con:configuration><token>&lt;open:getMsisdn_V4Response xmlns:open="http://www.openuri.org/"></token><ignoreCase>false</ignoreCase><useRegEx>false</useRegEx></con:configuration></con:assertion><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig action="http://www.openuri.org/GetMsisdn_V4PortType/GetMsisdnV4Request" mustUnderstand="NONE" version="200508"/><con:wsrmConfig version="1.2"/></con:request></con:config></con:testStep><con:loadTest id="4fa0b126-8950-48ba-b359-dbd817bd7b85" name="LoadTest 1"><con:settings/><con:threadCount>11</con:threadCount><con:startDelay>0</con:startDelay><con:sampleInterval>250</con:sampleInterval><con:calculateTPSOnTimePassed>true</con:calculateTPSOnTimePassed><con:resetStatisticsOnThreadCountChange>true</con:resetStatisticsOnThreadCountChange><con:historyLimit>-1</con:historyLimit><con:testLimit>500</con:testLimit><con:limitType>COUNT</con:limitType><con:loadStrategy><con:type>Simple</con:type><con:config><testDelay>0</testDelay><randomFactor>0.0</randomFactor></con:config></con:loadStrategy><con:assertion type="Step Status" name="Step Status"/><con:maxAssertionErrors>100</con:maxAssertionErrors><con:cancelExcessiveThreads>true</con:cancelExcessiveThreads><con:strategyInterval>500</con:strategyInterval></con:loadTest><con:properties/></con:testCase><con:properties/></con:testSuite><con:testSuite id="c778f609-00ce-4712-b54e-29de67e70b96" name="ESTORE_QueryProducedDocumentList TestSuite"><con:settings/><con:runType>SEQUENTIAL</con:runType><con:testCase id="f64e01b1-1088-403d-8182-b34b49c9c927" failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="QueryProducedDocumentList TestCase" searchProperties="true"><con:settings/><con:testStep type="request" id="57d9d0c1-de50-44ca-a0c0-9c42603e2fdb" name="QueryProducedDocumentList"><con:settings/><con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:interface>ESTORE_QueryProducedDocumentList</con:interface><con:operation>QueryProducedDocumentList</con:operation><con:request name="QueryProducedDocumentList" id="84cb19b2-8c13-4a8d-8621-19c86fc971f7"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8192/lwi/estore/qpdl</con:endpoint><con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://xmlns.telekom.com/ng/EnterpriseServices/Core/ProducedDocument/V1/services/" xmlns:dat="http://messaging.ei.tmobile.net/datatypes" xmlns:v1="http://xmlns.oracle.com/EnterpriseObjects/Core/EBO/ProducedDocument/V1" xmlns:v2="http://xmlns.oracle.com/EnterpriseObjects/Core/Common/V2" xmlns:add="http://schemas.xmlsoap.org/ws/2003/03/addressing" xmlns:urn="urn:oasis:names:tc:xacml:2.0:context:schema:cd:04">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <ser:QueryProducedDocumentList>
+         <ser:eiMessageContext>
+            <dat:sender>soapui</dat:sender>
+            <dat:correlationId>123456789</dat:correlationId>
+         </ser:eiMessageContext>
+         <ser:data>
+            <v1:QueryProducedDocumentListEBM versionID="?" languageCode="en-US">
+               <v2:EBMHeader></v2:EBMHeader>
+               <v1:DataArea>
+                  <v1:Query>
+                     <v1:QueryCode>LIST</v1:QueryCode>
+                     <v2:QueryCriteria>
+                        <v2:QueryExpression logicalOperatorCode="AND">
+                           <v2:ValueExpression queryOperatorCode="EQUALS">
+                              <v2:ElementPath>DOCUMENTTYPE</v2:ElementPath>
+                              <v2:Value>JAZZMBI</v2:Value>
+                           </v2:ValueExpression>
+                           <v2:ValueExpression queryOperatorCode="EQUALS">
+                              <v2:ElementPath>META/MTID</v2:ElementPath>
+                              <v2:Value>310897831</v2:Value>
+                           </v2:ValueExpression>
+                            <v2:ValueExpression queryOperatorCode="EQUALS">
+                              <v2:ElementPath>FROM_DATE</v2:ElementPath>
+                              <v2:Value>2005.06.20. 00:00:00</v2:Value>
+                           </v2:ValueExpression>                           
+                        </v2:QueryExpression>
+                     </v2:QueryCriteria>
+                  </v1:Query>
+               </v1:DataArea>
+            </v1:QueryProducedDocumentListEBM>
+         </ser:data>
+      </ser:QueryProducedDocumentList>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request><con:assertion type="Simple Contains" id="12ec8eb6-ec5f-404e-925d-28a0c7260f7e" name="Contains"><con:configuration><token>QueryProducedDocumentListResponseEBM</token><ignoreCase>false</ignoreCase><useRegEx>false</useRegEx></con:configuration></con:assertion><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig action="http://estore.tmobile.hu/soaif/QueryProducedDocumentListPortType/QueryProducedDocumentListRequest" mustUnderstand="NONE" version="200508"/><con:wsrmConfig version="1.2"/></con:request></con:config></con:testStep><con:loadTest id="5b9ffd50-b09b-4c0b-95fb-144495a21312" name="LoadTest 1"><con:settings/><con:threadCount>11</con:threadCount><con:startDelay>0</con:startDelay><con:sampleInterval>250</con:sampleInterval><con:calculateTPSOnTimePassed>true</con:calculateTPSOnTimePassed><con:resetStatisticsOnThreadCountChange>true</con:resetStatisticsOnThreadCountChange><con:historyLimit>-1</con:historyLimit><con:testLimit>500</con:testLimit><con:limitType>COUNT</con:limitType><con:loadStrategy><con:type>Simple</con:type><con:config><testDelay>0</testDelay><randomFactor>0.0</randomFactor></con:config></con:loadStrategy><con:assertion type="Step Status" name="Step Status"/><con:maxAssertionErrors>100</con:maxAssertionErrors><con:cancelExcessiveThreads>true</con:cancelExcessiveThreads><con:strategyInterval>500</con:strategyInterval></con:loadTest><con:properties/></con:testCase><con:properties/></con:testSuite><con:mockService id="e2256006-5e78-4688-822b-7e0b465fff06" port="8092" path="/GetDocument" host="COMDEV-WLS-07" name="LwiMockGetDocument" bindToHostOnly="false" docroot=""><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.mock.WsdlMockService@require-soap-action">false</con:setting></con:settings><con:properties/><con:mockOperation name="GetDocument" id="4703e29c-e1e5-4a4a-8645-be45211ef6c5" interface="ESTORE_getPutListInvalid" operation="GetDocument"><con:settings/><con:defaultResponse>Response 1</con:defaultResponse><con:dispatchStyle>SEQUENCE</con:dispatchStyle><con:response name="Response 1" id="38d6ddf1-b8e0-4f67-97c6-b03ce066cebc" httpResponseStatus="200" encoding="UTF-8"><con:settings/><con:responseContent><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
    <soapenv:Header xmlns:work="http://bea.com/2004/06/soap/workarea/">
         </soapenv:Header>
    <soapenv:Body>
