@@ -58,7 +58,7 @@ public class MessageLogHandler implements HttpHandler {
 			responseLogMessage.append(String.format("[RequestId: %s CorrelationId: %s UserId: %s]", requestId, correlationId, userId));
 			
 			if (logLevel == MessageLogLevel.FULL) {
-				requestLogMessage.append(String.format("[%s]", message.replaceAll(CLEANSE_REGEX, "")));
+				requestLogMessage.append(String.format("[%s]", message != null ? message.replaceAll(CLEANSE_REGEX, "") : "N/A"));
 			}
 		}
 
