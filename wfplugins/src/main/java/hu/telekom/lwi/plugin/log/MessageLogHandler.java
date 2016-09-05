@@ -17,8 +17,8 @@ import io.undertow.server.HttpServerExchange;
 
 public class MessageLogHandler implements HttpHandler {
 
-	private static final Logger log = Logger.getLogger(MessageLogHandler.class);
-	private static final Logger messageLog = Logger.getLogger("hu.telekom.lwi.message.log");
+	private final Logger log = Logger.getLogger(MessageLogHandler.class);
+	private final Logger messageLog = Logger.getLogger("hu.telekom.lwi.message.log");
 	
 	private static final String CLEANSE_REGEX = "(\n|\t|\r|\\s{2,})";
 	
