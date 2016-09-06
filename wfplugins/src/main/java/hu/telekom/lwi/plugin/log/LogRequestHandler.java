@@ -2,6 +2,8 @@ package hu.telekom.lwi.plugin.log;
 
 import io.undertow.UndertowLogger;
 import io.undertow.connector.PooledByteBuffer;
+import io.undertow.io.Receiver;
+import io.undertow.io.Receiver.ErrorCallback;
 import io.undertow.server.Connectors;
 import io.undertow.server.HandlerWrapper;
 import io.undertow.server.HttpHandler;
@@ -14,29 +16,38 @@ import org.xnio.ChannelListener;
 import org.xnio.IoUtils;
 import org.xnio.channels.StreamSourceChannel;
 
+import hu.telekom.lwi.plugin.LwiAbstractHandler;
+import hu.telekom.lwi.plugin.LwiContext;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.LinkedBlockingDeque;
 
 
-public class LogRequestHandler implements HttpHandler {
+public class LogRequestHandler extends LwiAbstractHandler {
 
-    private final HttpHandler next;
     private final int maxBuffers;
     
-	private final Logger log = Logger.getLogger(MessageLogHandler.class);
+	private final Logger log = Logger.getLogger(this.getClass());
 	private final Logger messageLog = Logger.getLogger("hu.telekom.lwi.message.log");
-
 	
-    public LogRequestHandler(HttpHandler next) {
-        this.next = next;
-        this.maxBuffers = 100000;
+	
+    public LogRequestHandler( LwiContext lwiContext, HttpHandler next) {
+    	
+    	super(lwiContext, next);
+    	
+        this.maxBuffers = 1000000;
     }
 
 	    
     public void handleRequest(final HttpServerExchange exchange) throws Exception {
+    	
+    	
+    	log.debug("LogRequestHandler > handle start...");
+
 
         if(!exchange.isRequestComplete() && !HttpContinue.requiresContinueResponse(exchange.getRequestHeaders())) {
             final StreamSourceChannel channel = exchange.getRequestChannel();
@@ -131,7 +142,10 @@ public class LogRequestHandler implements HttpHandler {
            		sb.append(new String(byteBuffer, charset));
             }            
             
-            messageLog.info("NEW REQ LOG  > " + sb.toString() );
+            messageLog.info("LOG  > " + sb.toString() );
+            
+            lwiContext.setRequestContentString(sb.toString());
+            
                        
             Connectors.ungetRequestBytes(exchange, bufferedData);
             Connectors.resetRequestChannel(exchange);
@@ -140,7 +154,7 @@ public class LogRequestHandler implements HttpHandler {
             
         }
         
-        
+        log.debug("LogRequestHandler > handle complete");
         
         next.handleRequest(exchange);
     }
