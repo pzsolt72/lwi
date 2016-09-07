@@ -41,7 +41,7 @@ public class LogResponseHandler implements HttpHandler {
 	private final Logger log = Logger.getLogger(this.getClass());
 	private final Logger messageLog = Logger.getLogger("hu.telekom.lwi.message.log");
     
-    private static final List<byte[]> data = new CopyOnWriteArrayList<>();
+    
 
     public LogResponseHandler( final HttpHandler next) {
 
@@ -81,6 +81,8 @@ public class LogResponseHandler implements HttpHandler {
     
     
     public class MyConduit extends AbstractStreamSinkConduit<StreamSinkConduit> {
+    	
+    	private final List<byte[]> data = new CopyOnWriteArrayList<>();
 
 		protected MyConduit(StreamSinkConduit next) {
 			super(next);		
