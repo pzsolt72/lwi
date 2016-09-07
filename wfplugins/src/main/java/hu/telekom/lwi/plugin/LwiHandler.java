@@ -11,6 +11,7 @@ import java.util.Set;
 import hu.telekom.lwi.plugin.limit.RequestLimitHandler;
 import hu.telekom.lwi.plugin.log.LogRequestHandler;
 import hu.telekom.lwi.plugin.log.LogResponseHandler;
+import hu.telekom.lwi.plugin.log.LwiLogHandler;
 import hu.telekom.lwi.plugin.security.SecurityHandler;
 import io.undertow.server.HandlerWrapper;
 import io.undertow.server.HttpHandler;
@@ -98,11 +99,13 @@ public class LwiHandler implements HttpHandler {
 
 	LwiContext lwiContext = new LwiContext();
 
-		LogResponseHandler logResponseHandler = new LogResponseHandler(next);
+//		LogResponseHandler logResponseHandler = new LogResponseHandler(next);
 	
-		LogRequestHandler logRequestHandler = new LogRequestHandler(lwiContext, logResponseHandler);
+//		LogRequestHandler logRequestHandler = new LogRequestHandler(lwiContext, logResponseHandler);
 
-		SecurityHandler securityHandler = new SecurityHandler(logRequestHandler);
+		LwiLogHandler lwiLogHandler = new LwiLogHandler(next);
+	
+		SecurityHandler securityHandler = new SecurityHandler(lwiLogHandler);
 /*
 		RequestLimitHandler requestLimitHandler = new RequestLimitHandler(securityHandler);
 		requestLimitHandler.setMaximumConcurrentRequests(Integer.parseInt(maxRequest));
