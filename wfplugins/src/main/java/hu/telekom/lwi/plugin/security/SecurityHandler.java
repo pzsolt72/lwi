@@ -17,6 +17,7 @@ import io.undertow.security.handlers.SecurityInitialHandler;
 import io.undertow.security.idm.Account;
 import io.undertow.security.idm.Credential;
 import io.undertow.security.idm.IdentityManager;
+import io.undertow.security.idm.PasswordCredential;
 import io.undertow.security.impl.BasicAuthenticationMechanism;
 import io.undertow.security.impl.ClientCertAuthenticationMechanism;
 import io.undertow.server.HttpHandler;
@@ -62,24 +63,36 @@ public class SecurityHandler implements HttpHandler, IdentityManager {
 	public Account verify(final String id, final Credential credential) {
 		log.info("SecurityHandler.verify invoked - "+id+" - "+credential);
 		
-		return new Account() {
-			@Override
-			public Set<String> getRoles() {
-				Set<String> roles = new HashSet<String>();
-				roles.add("LWI_ROLE");
-				return roles;
+		if (credential != null) {
+			boolean authenticated = false;
+			if (credential instanceof PasswordCredential) {
+				String password = new String(((PasswordCredential) credential).getPassword());
+				System.out.println("### Password to check: "+password);
+				authenticated = true;
 			}
 			
-			@Override
-			public Principal getPrincipal() {
-				return new Principal() {
+			if (authenticated) {
+				return new Account() {
 					@Override
-					public String getName() {
-						return id;
+					public Set<String> getRoles() {
+						Set<String> roles = new HashSet<String>();
+						roles.add("LWI_ROLE");
+						return roles;
+					}
+					
+					@Override
+					public Principal getPrincipal() {
+						return new Principal() {
+							@Override
+							public String getName() {
+								return id;
+							}
+						};
 					}
 				};
 			}
-		};
+		}
+		return null;
 	}
 
 	@Override
