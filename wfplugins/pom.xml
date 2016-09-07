@@ -33,6 +33,31 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<!-- dependencies for wsdl based request validation -->
+		<dependency>
+			<groupId>org.reficio</groupId>
+			<artifactId>soap-builder</artifactId>
+			<version>1.0.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.reficio</groupId>
+			<artifactId>soap-client</artifactId>
+			<version>1.0.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.reficio</groupId>
+			<artifactId>soap-server</artifactId>
+			<version>1.0.0-SNAPSHOT</version>
+		</dependency>
 
 	</dependencies>
+
+	<!-- repository for wsdl based request validation libraries -->
+	<repositories>
+		<repository>
+			<id>reficio</id>
+			<url>http://repo.reficio.org/maven/</url>
+		</repository>
+	</repositories>
+
 </project>
