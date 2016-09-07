@@ -10,6 +10,7 @@ import java.util.Set;
 
 import hu.telekom.lwi.plugin.limit.RequestLimitHandler;
 import hu.telekom.lwi.plugin.log.LogRequestHandler;
+import hu.telekom.lwi.plugin.log.LogResponseHandler;
 import hu.telekom.lwi.plugin.security.SecurityHandler;
 import io.undertow.server.HandlerWrapper;
 import io.undertow.server.HttpHandler;
@@ -97,7 +98,9 @@ public class LwiHandler implements HttpHandler {
 
 	LwiContext lwiContext = new LwiContext();
 
-		LogRequestHandler logRequestHandler = new LogRequestHandler(lwiContext, next);
+		LogResponseHandler logResponseHandler = new LogResponseHandler(next);
+	
+		LogRequestHandler logRequestHandler = new LogRequestHandler(lwiContext, logResponseHandler);
 
 		SecurityHandler securityHandler = new SecurityHandler(logRequestHandler);
 /*
