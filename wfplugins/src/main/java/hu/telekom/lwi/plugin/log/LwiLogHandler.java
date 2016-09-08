@@ -18,6 +18,7 @@ import org.xnio.conduits.Conduits;
 import org.xnio.conduits.StreamSinkConduit;
 import org.xnio.conduits.StreamSourceConduit;
 
+import hu.telekom.lwi.plugin.LwiHandler;
 import io.undertow.server.ConduitWrapper;
 import io.undertow.server.ExchangeCompletionListener;
 import io.undertow.server.HttpHandler;
@@ -46,7 +47,9 @@ public class LwiLogHandler implements HttpHandler {
 	@Override
 	public void handleRequest(HttpServerExchange exchange) throws Exception {
 
-		log.debug("LwiLogHandler > handle start...");
+		String lwiRequestId = LwiHandler.getLwiRequestId(exchange);
+		
+		log.debug(String.format("[%s] LwiLogHandler > start request/response log handling...",lwiRequestId));
 
 		requestBuffer = new StringBuffer();
 		responseBuffer = new StringBuffer();
@@ -91,7 +94,7 @@ public class LwiLogHandler implements HttpHandler {
 				requestBuffer.setLength(0);
 				nextListener.proceed();
 
-				log.debug("LwiLogHandler > handle complete!");
+				log.debug(String.format("[%s] LwiLogHandler > handle complete!",lwiRequestId));
 
 			}
 		});
