@@ -46,6 +46,7 @@ public class LwiHandler implements HttpHandler {
 	private Integer queueSize;
 	private String logLevel;
 	private String validationType;
+	private Boolean skipAuthentication = false;
 
 	/*
 	 * public enum LogLevel { NONE, MIN, CTX, FULL };
@@ -67,7 +68,7 @@ public class LwiHandler implements HttpHandler {
 		this.next = next;
 	}
 
-	public LwiHandler(HttpHandler next, Integer maxRequest, Integer queueSize, String logLevel, String validationType) {
+	public LwiHandler(HttpHandler next, Integer maxRequest, Integer queueSize, String logLevel, String validationType, Boolean skipAuthentication) {
 
 		log.debug("Init LwiHandler");
 		
@@ -76,6 +77,7 @@ public class LwiHandler implements HttpHandler {
 		this.queueSize = queueSize;
 		this.logLevel = logLevel;
 		this.validationType = validationType;
+		this.skipAuthentication = skipAuthentication;
 
 		validateHandlerParameters(maxRequest, queueSize, logLevel, validationType);		
 		
@@ -93,7 +95,7 @@ public class LwiHandler implements HttpHandler {
 			validateHandlerParameters(maxRequest, queueSize, logLevel, validationType);
 
 
-		log.info(String.format("[%s] LwiHandler->handle %s maxRequests: %s, queueSize: %s, logLevel: %s,  validationType: %s",lwiRequestId, exchange.getRequestURL(), maxRequest, queueSize, logLevel, validationType));
+		log.info(String.format("[%s] LwiHandler->handle %s maxRequests: %s, queueSize: %s, logLevel: %s,  validationType: %s, skipAuth: ",lwiRequestId, exchange.getRequestURL(), maxRequest, queueSize, logLevel, validationType, skipAuthentication));
 
 
 		if (requestLimitHandler == null) {
@@ -101,10 +103,23 @@ public class LwiHandler implements HttpHandler {
 			requestLimitHandler.setFailureHandler(new LwiRequestLimitExceededHandler());
 		}
 
-		LwiLogHandler lwiLogHandler = new LwiLogHandler(next);
-		SecurityHandler securityHandler = new SecurityHandler(lwiLogHandler);
+		HttpHandler nnnext = next;
+		
+		if ( true ) {
+			LwiLogHandler lwiLogHandler = new LwiLogHandler(nnnext);
+			nnnext = lwiLogHandler;
+		}
+		
+		// can be skipped!!
+		if ( !skipAuthentication ) {
+			
+			SecurityHandler securityHandler = new SecurityHandler(nnnext);			
+			nnnext = securityHandler;
+		}
+		
+			
 
-		requestLimitHandler.handleRequest(exchange, securityHandler);
+		requestLimitHandler.handleRequest(exchange, nnnext);
 
 	}
 	
@@ -235,18 +250,20 @@ public class LwiHandler implements HttpHandler {
 		private Integer queueSize;
 		private String logLevel;
 		private String validationType;
+		private Boolean skipAuthentication;
 
-		public Wrapper(Integer maxRequest, Integer queueSize, String logLevel, String validationType) {
+		public Wrapper(Integer maxRequest, Integer queueSize, String logLevel, String validationType, Boolean skipAuthentication) {
 			super();
 			this.maxRequest = maxRequest;
 			this.queueSize = queueSize;
 			this.logLevel = logLevel;
 			this.validationType = validationType;
+			this.skipAuthentication = skipAuthentication;
 		}
 
 		@Override
 		public HttpHandler wrap(HttpHandler exchange) {
-			return new LwiHandler(exchange, maxRequest, queueSize, logLevel, validationType);
+			return new LwiHandler(exchange, maxRequest, queueSize, logLevel, validationType, skipAuthentication);
 		}
 
 	}
@@ -261,10 +278,12 @@ public class LwiHandler implements HttpHandler {
 		@Override
 		public Map<String, Class<?>> parameters() {
 			Map<String, Class<?>> ret = new HashMap<>();
-			ret.put("maxRequest", String.class);
-			ret.put("queueSize", String.class);
+			ret.put("maxRequest", Integer.class);
+			ret.put("queueSize", Integer.class);
 			ret.put("logLevel", String.class);
 			ret.put("validationType", String.class);
+			ret.put("skipAuthentication", String.class);
+			
 			return ret;
 		}
 
@@ -281,7 +300,7 @@ public class LwiHandler implements HttpHandler {
 		@Override
 		public HandlerWrapper build(Map<String, Object> config) {
 			return new Wrapper((Integer) config.get("maxRequest"), (Integer) config.get("queueSize"),
-					(String) config.get("logLevel"), (String) config.get("validationType"));
+					(String) config.get("logLevel"), (String) config.get("validationType"), (Boolean)config.get("skipAuthentication"));
 		}
 	}
 
