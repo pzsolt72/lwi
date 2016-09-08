@@ -64,7 +64,7 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- dependencies for wsdl based request validation -->
+		<!-- dependencies for wsdl based request  validation -->
 		<dependency>
 			<groupId>org.reficio</groupId>
 			<artifactId>soap-builder</artifactId>
