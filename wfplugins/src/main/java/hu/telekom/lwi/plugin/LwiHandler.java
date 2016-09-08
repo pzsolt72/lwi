@@ -2,76 +2,157 @@ package hu.telekom.lwi.plugin;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.jboss.logging.Logger;
+
 import hu.telekom.lwi.plugin.limit.RequestLimitHandler;
-import hu.telekom.lwi.plugin.log.LogRequestHandler;
-import hu.telekom.lwi.plugin.log.LogResponseHandler;
 import hu.telekom.lwi.plugin.log.LwiLogHandler;
+import hu.telekom.lwi.plugin.log.MessageLogLevel;
 import hu.telekom.lwi.plugin.security.SecurityHandler;
+import io.undertow.io.Sender;
 import io.undertow.server.HandlerWrapper;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.RequestLimit;
-import io.undertow.server.handlers.RequestLimitingHandler;
-import io.undertow.server.handlers.ResponseCodeHandler;
 import io.undertow.server.handlers.builder.HandlerBuilder;
 
+/**
+ * 
+ * @author paroczi1zso420-dvr
+ *
+ */
 public class LwiHandler implements HttpHandler {
 
-	private HttpHandler next;
-	private HttpHandler first;
+	private static final String REQUEST_LIMIT_ERROR_MSG = "Request limit exceeded! max request allowed: %s, queue size: %s";
+	private static final int REQUEST_LIMIT_ERROR_CODE = 509;
 
-	private String maxRequest;
-	private String queueSize;
+	private RequestLimit requestLimitHandler = null;
+
+	private boolean parametersAreValidated = false;
+	
+	private final Logger log = Logger.getLogger(LwiHandler.class);	
+
+	private HttpHandler next;
+
+	private Integer maxRequest;
+	private Integer queueSize;
 	private String logLevel;
 	private String validationType;
 
-	public enum LogLevel {
-		NONE, MIN, CTX, FULL
-	};
+	/*
+	 * public enum LogLevel { NONE, MIN, CTX, FULL };
+	 */
 
 	public enum ValidationType {
 		NO, CTX, MSG
 	};
 
-	private String requestData;
-	private File requestFile;
-
 	/**
 	 * 
 	 * @param next
 	 */
-	
+
 	public LwiHandler(HttpHandler next) {
+		
+		log.debug("Init LwiHandler");
 
 		this.next = next;
 	}
-	
-	public LwiHandler(HttpHandler next, String maxRequest, String queueSize, String logLevel, String validationType) {
 
-		this.next = next;
+	public LwiHandler(HttpHandler next, Integer maxRequest, Integer queueSize, String logLevel, String validationType) {
+
+		log.debug("Init LwiHandler");
+		
+		this.next = next;		
 		this.maxRequest = maxRequest;
 		this.queueSize = queueSize;
 		this.logLevel = logLevel;
 		this.validationType = validationType;
 
+		validateHandlerParameters(maxRequest, queueSize, logLevel, validationType);		
 		
-		if (maxRequest == null || Integer.parseInt(maxRequest) < -1) {
+
+	}
+
+	@Override
+	public void handleRequest(HttpServerExchange exchange) throws Exception {
+
+		if (!parametersAreValidated)
+			validateHandlerParameters(maxRequest, queueSize, logLevel, validationType);
+
+		
+		log.debug("LwiHandler->handle " + String.format("maxRequests: %s, queueSize: %s, logLevel: %s,  validationType: %s", maxRequest, queueSize, logLevel, validationType));
+
+
+		if (requestLimitHandler == null) {
+			requestLimitHandler = new RequestLimit(maxRequest, queueSize);
+			requestLimitHandler.setFailureHandler(new LwiRequestLimitExceededHandler());
+		}
+
+		LwiLogHandler lwiLogHandler = new LwiLogHandler(next);
+		SecurityHandler securityHandler = new SecurityHandler(lwiLogHandler);
+
+		requestLimitHandler.handleRequest(exchange, securityHandler);
+
+	}
+
+	public HttpHandler getNext() {
+		return next;
+	}
+
+	public void setNext(HttpHandler next) {
+		this.next = next;
+	}
+
+	public Integer getMaxRequest() {
+		return maxRequest;
+	}
+
+	public void setMaxRequest(Integer maxRequest) {
+		this.maxRequest = maxRequest;
+	}
+
+	public Integer getQueueSize() {
+		return queueSize;
+	}
+
+	public void setQueueSize(Integer queueSize) {
+		this.queueSize = queueSize;
+	}
+
+	public String getLogLevel() {
+		return logLevel;
+	}
+
+	public void setLogLevel(String logLevel) {
+		this.logLevel = logLevel;
+	}
+
+	public String getValidationType() {
+		return validationType;
+	}
+
+	public void setValidationType(String validationType) {
+		this.validationType = validationType;
+	}
+
+	private void validateHandlerParameters(Integer maxRequest, Integer queueSize, String logLevel,
+			String validationType) {
+		if (maxRequest == null) {
 			throw new RuntimeException("Set the LwiHandler.maxRequest value properly! e.g.:  20");
 		}
 
-		if (queueSize == null || Integer.parseInt(queueSize) < -1) {
+		if (queueSize == null) {
 			throw new RuntimeException("Set the LwiHandler.queueSize value properly! e.g.:  20");
 		}
 
 		boolean validLogLevel = false;
-		for (int i = 0; i < LogLevel.values().length; i++) {
-			LogLevel ll = LogLevel.values()[i];
+		for (int i = 0; i < MessageLogLevel.values().length; i++) {
+			MessageLogLevel ll = MessageLogLevel.values()[i];
 			if (ll.toString().equals(logLevel)) {
 				validLogLevel = true;
 				break;
@@ -92,78 +173,38 @@ public class LwiHandler implements HttpHandler {
 		if (!validvalidationType) {
 			throw new RuntimeException("Set the LwiHandler.validationType value logLevel! e.g.: NO, CTX, MSG");
 		}
+
+		parametersAreValidated = true;
 	}
 
-	@Override
-	public void handleRequest(HttpServerExchange exchange) throws Exception {
+	private class LwiRequestLimitExceededHandler implements HttpHandler {
 
-	LwiContext lwiContext = new LwiContext();
+		@Override
+		public void handleRequest(HttpServerExchange exchange) throws Exception {
+			
+			log.warn(String.format(REQUEST_LIMIT_ERROR_MSG, maxRequest, queueSize) + " " + exchange.getRequestURI());
 
-//		LogResponseHandler logResponseHandler = new LogResponseHandler(next);
-	
-//		LogRequestHandler logRequestHandler = new LogRequestHandler(lwiContext, logResponseHandler);
+			exchange.setStatusCode(REQUEST_LIMIT_ERROR_CODE);
+			Sender sender = exchange.getResponseSender();
+			sender.send(String.format(REQUEST_LIMIT_ERROR_MSG, maxRequest, queueSize));
 
-		LwiLogHandler lwiLogHandler = new LwiLogHandler(next);
-	
-		SecurityHandler securityHandler = new SecurityHandler(lwiLogHandler);
-/*
-		RequestLimitHandler requestLimitHandler = new RequestLimitHandler(securityHandler);
-		requestLimitHandler.setMaximumConcurrentRequests(Integer.parseInt(maxRequest));
-		requestLimitHandler.setQueueSize(Integer.parseInt(queueSize));
+		}
 
-		// first = requestLimitHandler;
-
-		requestLimitHandler.handleRequest(exchange);
-*/
-		
-		RequestLimit requestLimit = new RequestLimit(Integer.parseInt(maxRequest), Integer.parseInt(queueSize));
-		requestLimit.setFailureHandler(new ResponseCodeHandler(503));
-		
-		requestLimit.handleRequest(exchange, securityHandler);
-	}
-
-	public String getMaxRequest() {
-		return maxRequest;
-	}
-
-	public void setMaxRequest(String maxRequest) {
-		this.maxRequest = maxRequest;
-	}
-
-	public String getQueueSize() {
-		return queueSize;
-	}
-
-	public void setQueueSize(String queueSize) {
-		this.queueSize = queueSize;
-	}
-
-	public String getLogLevel() {
-		return logLevel;
-	}
-
-	public void setLogLevel(String logLevel) {
-		this.logLevel = logLevel;
-	}
-
-	public String getValidationType() {
-		return validationType;
-	}
-
-	public void setValidationType(String validationType) {
-		this.validationType = validationType;
 	}
 
 	
 	/*
+	 * EZ MÉG NEM MŰKÖDIK A CONFIGBÓL!!!
+	 */
+	
 	public static final class Wrapper implements HandlerWrapper {
 
-		private String maxRequest;
-		private String queueSize;
+		private Integer maxRequest;
+		private Integer queueSize;
 		private String logLevel;
 		private String validationType;
 
-		public Wrapper(String maxRequest, String queueSize, String logLevel, String validationType) {
+		public Wrapper(Integer maxRequest, Integer queueSize, String logLevel, String validationType) {
 			super();
 			this.maxRequest = maxRequest;
 			this.queueSize = queueSize;
@@ -173,7 +214,6 @@ public class LwiHandler implements HttpHandler {
 
 		@Override
 		public HttpHandler wrap(HttpHandler exchange) {
-			// TODO Auto-generated method stub
 			return new LwiHandler(exchange, maxRequest, queueSize, logLevel, validationType);
 		}
 
@@ -198,7 +238,7 @@ public class LwiHandler implements HttpHandler {
 
 		@Override
 		public Set<String> requiredParameters() {
-			return new HashSet<>(Arrays.asList("maxRequest", "queueSize","logLevel","validationType"));
+			return new HashSet<>(Arrays.asList("maxRequest", "queueSize", "logLevel", "validationType"));
 		}
 
 		@Override
@@ -208,10 +248,9 @@ public class LwiHandler implements HttpHandler {
 
 		@Override
 		public HandlerWrapper build(Map<String, Object> config) {
-			return new Wrapper((String) config.get("maxRequest"), (String) config.get("queueSize"),
+			return new Wrapper((Integer) config.get("maxRequest"), (Integer) config.get("queueSize"),
 					(String) config.get("logLevel"), (String) config.get("validationType"));
 		}
 	}
-	*/
 
 }

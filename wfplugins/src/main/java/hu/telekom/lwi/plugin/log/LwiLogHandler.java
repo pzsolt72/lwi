@@ -37,7 +37,7 @@ public class LwiLogHandler implements HttpHandler {
 	private HttpHandler next = null;
 
 	private final Logger log = Logger.getLogger(this.getClass());
-	private final Logger messageLog = Logger.getLogger("hu.telekom.lwi.message.log");
+	private final Logger messageLog = Logger.getLogger("LWI_LOG_MESSAGE");
 
 	public LwiLogHandler(HttpHandler next) {
 		this.next = next;
@@ -108,7 +108,6 @@ public class LwiLogHandler implements HttpHandler {
 
 		@Override
 		public int read(ByteBuffer dst) throws IOException {
-			// TODO Auto-generated method stub
 
 			int pos = dst.position();
 			int res = super.read(dst);
@@ -117,10 +116,8 @@ public class LwiLogHandler implements HttpHandler {
 				byte[] d = new byte[res];
 				for (int i = 0; i < res; ++i) {
 					d[i] = dst.get(i + pos);
-
 				}
 				requestBuffer.append(new String(d));
-
 			}
 
 			if (requestBuffer.length() > MAXBUFFER) {
@@ -134,19 +131,16 @@ public class LwiLogHandler implements HttpHandler {
 
 		@Override
 		public long read(ByteBuffer[] dsts, int offs, int len) throws IOException {
-			// TODO Auto-generated method stub
 			return super.read(dsts, offs, len);
 		}
 
 		@Override
 		public long transferTo(long count, ByteBuffer throughBuffer, StreamSinkChannel target) throws IOException {
-			// TODO Auto-generated method stub
 			return super.transferTo(count, throughBuffer, target);
 		}
 
 		@Override
 		public long transferTo(long position, long count, FileChannel target) throws IOException {
-			// TODO Auto-generated method stub
 			return super.transferTo(position, count, target);
 		}
 
