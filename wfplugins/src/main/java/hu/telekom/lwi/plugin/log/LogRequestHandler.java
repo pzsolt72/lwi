@@ -4,23 +4,31 @@ import io.undertow.UndertowLogger;
 import io.undertow.connector.PooledByteBuffer;
 import io.undertow.io.Receiver;
 import io.undertow.io.Receiver.ErrorCallback;
+import io.undertow.server.ConduitWrapper;
 import io.undertow.server.Connectors;
+import io.undertow.server.ExchangeCompletionListener;
 import io.undertow.server.HandlerWrapper;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
+import io.undertow.server.ExchangeCompletionListener.NextListener;
 import io.undertow.server.handlers.builder.HandlerBuilder;
 import io.undertow.server.protocol.http.HttpContinue;
+import io.undertow.util.ConduitFactory;
 
 import org.jboss.logging.Logger;
 import org.xnio.ChannelListener;
 import org.xnio.IoUtils;
+import org.xnio.channels.StreamSinkChannel;
 import org.xnio.channels.StreamSourceChannel;
+import org.xnio.conduits.AbstractStreamSourceConduit;
+import org.xnio.conduits.StreamSourceConduit;
 
 import hu.telekom.lwi.plugin.LwiAbstractHandler;
 import hu.telekom.lwi.plugin.LwiContext;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +37,12 @@ import java.util.concurrent.LinkedBlockingDeque;
 
 public class LogRequestHandler extends LwiAbstractHandler {
 
+	private static final int MAXBUFFER = 100000;
+
+	private int partCounter = 0;
+
+	private StringBuffer sb = null;
+	
     private final int maxBuffers;
     
 	private final Logger log = Logger.getLogger(this.getClass());
@@ -43,12 +57,41 @@ public class LogRequestHandler extends LwiAbstractHandler {
     }
 
 	    
-    public void handleRequest(final HttpServerExchange exchange) throws Exception {
-    	
+    public void handleRequest(final HttpServerExchange exchange) throws Exception {    	
     	
     	log.debug("LogRequestHandler > handle start...");
+    	
+		sb = new StringBuffer();
 
+    	exchange.addRequestWrapper(new ConduitWrapper<StreamSourceConduit>() {
+			
+			@Override
+			public StreamSourceConduit wrap(ConduitFactory<StreamSourceConduit> factory, HttpServerExchange exch) {
+				
+				return new LwiRequestConduit(factory.create());
+			}
+		});
 
+		exchange.addExchangeCompleteListener(new ExchangeCompletionListener() {
+			@Override
+			public void exchangeEvent(final HttpServerExchange exchange, final NextListener nextListener) {
+				
+				if ( partCounter > 0 ) {
+					partCounter++;
+					messageLog.info("Partial request part: " + partCounter + " last > " + sb.toString());					
+				} else {
+					messageLog.info("REQUEST > " + sb.toString());					
+				}
+
+				sb.setLength(0);
+				nextListener.proceed();
+
+			}
+		});
+
+    	
+    	
+    	/*
         if(!exchange.isRequestComplete() && !HttpContinue.requiresContinueResponse(exchange.getRequestHeaders())) {
             final StreamSourceChannel channel = exchange.getRequestChannel();
             int readBuffers = 0;
@@ -155,8 +198,69 @@ public class LogRequestHandler extends LwiAbstractHandler {
         }
         
         log.debug("LogRequestHandler > handle complete");
-        
+        */
+    	
         next.handleRequest(exchange);
+    }
+    
+    
+    
+    private class LwiRequestConduit extends AbstractStreamSourceConduit<StreamSourceConduit> {
+
+		protected LwiRequestConduit(StreamSourceConduit next) {
+			super(next);
+		}
+
+		@Override
+		public int read(ByteBuffer dst) throws IOException {
+			// TODO Auto-generated method stub
+			
+			int pos = dst.position();
+			int res = super.read(dst);
+			
+			if (res > 0) {
+				byte[] d = new byte[res];
+				for (int i = 0; i < res; ++i) {
+					d[i] = dst.get(i + pos);
+
+				}
+				sb.append(new String(d));
+
+			}			
+			
+			
+			if (sb.length() > MAXBUFFER) {
+				partCounter++;
+				messageLog.info("Partial request part: " + partCounter + " > " + sb.toString());
+				sb.setLength(0);
+			}
+			
+			return res;
+		}
+
+		@Override
+		public long read(ByteBuffer[] dsts, int offs, int len) throws IOException {
+			// TODO Auto-generated method stub
+			return super.read(dsts, offs, len);
+		}
+
+		@Override
+		public long transferTo(long count, ByteBuffer throughBuffer, StreamSinkChannel target) throws IOException {
+			// TODO Auto-generated method stub
+			return super.transferTo(count, throughBuffer, target);
+		}
+
+		@Override
+		public long transferTo(long position, long count, FileChannel target) throws IOException {
+			// TODO Auto-generated method stub
+			return super.transferTo(position, count, target);
+		}
+    	
+    	
+    	
+    	
+    	
+    	
     }
 
 }

@@ -82,7 +82,7 @@ public class LogResponseHandler implements HttpHandler {
 		return this;
 	}
 
-	public class LwiResponseConduit extends AbstractStreamSinkConduit<StreamSinkConduit> {
+	private class LwiResponseConduit extends AbstractStreamSinkConduit<StreamSinkConduit> {
 
 		private final List<byte[]> data = new CopyOnWriteArrayList<>();
 
