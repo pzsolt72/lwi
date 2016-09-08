@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import org.jboss.logging.Logger;
@@ -19,6 +20,7 @@ import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.RequestLimit;
 import io.undertow.server.handlers.builder.HandlerBuilder;
+import io.undertow.util.HttpString;
 
 /**
  * 
@@ -26,6 +28,8 @@ import io.undertow.server.handlers.builder.HandlerBuilder;
  *
  */
 public class LwiHandler implements HttpHandler {
+	
+	private static final String LWI_REQUEST_ID_KEY = "X-Lwi-RequestId";
 
 	private static final String REQUEST_LIMIT_ERROR_MSG = "Request limit exceeded! max request allowed: %s, queue size: %s";
 	private static final int REQUEST_LIMIT_ERROR_CODE = 509;
@@ -80,12 +84,16 @@ public class LwiHandler implements HttpHandler {
 
 	@Override
 	public void handleRequest(HttpServerExchange exchange) throws Exception {
+		
+		String lwiRequestId = generateLwiReqId();
+		
+		exchange.getRequestHeaders().add(new HttpString(LWI_REQUEST_ID_KEY), lwiRequestId);
 
 		if (!parametersAreValidated)
 			validateHandlerParameters(maxRequest, queueSize, logLevel, validationType);
 
-		
-		log.debug("LwiHandler->handle " + String.format("maxRequests: %s, queueSize: %s, logLevel: %s,  validationType: %s", maxRequest, queueSize, logLevel, validationType));
+
+		log.info(String.format("[%s] LwiHandler->handle %s maxRequests: %s, queueSize: %s, logLevel: %s,  validationType: %s",lwiRequestId, exchange.getRequestURL(), maxRequest, queueSize, logLevel, validationType));
 
 
 		if (requestLimitHandler == null) {
@@ -99,6 +107,16 @@ public class LwiHandler implements HttpHandler {
 		requestLimitHandler.handleRequest(exchange, securityHandler);
 
 	}
+	
+	
+	public static String getLwiRequestId(HttpServerExchange exchange) {
+		try {
+			return exchange.getRequestHeaders().get(LWI_REQUEST_ID_KEY).getFirst();
+		} catch (Exception e) {
+			return "N/A";
+		}
+	}
+	
 
 	public HttpHandler getNext() {
 		return next;
@@ -191,6 +209,20 @@ public class LwiHandler implements HttpHandler {
 		}
 
 	}
+	
+	private String generateLwiReqId() {
+		char[] chars = "abcdefghijklmnopqrstuvwxyz".toCharArray();
+		StringBuilder sb = new StringBuilder("lwiId-");
+		Random random = new Random();
+		for (int i = 0; i < 3; i++) {
+		    char c = chars[random.nextInt(chars.length)];
+		    sb.append(c);
+		}
+		sb.append(System.currentTimeMillis());
+		String output = sb.toString();
+		
+		return output;
+	} 
 
 	
 	/*
