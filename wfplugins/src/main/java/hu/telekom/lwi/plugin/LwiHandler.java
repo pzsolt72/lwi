@@ -172,6 +172,16 @@ public class LwiHandler implements HttpHandler {
 	public void setValidationType(String validationType) {
 		this.validationType = validationType;
 	}
+	
+	
+
+	public Boolean getSkipAuthentication() {
+		return skipAuthentication;
+	}
+
+	public void setSkipAuthentication(Boolean skipAuthentication) {
+		this.skipAuthentication = skipAuthentication;
+	}
 
 	private void validateHandlerParameters(Integer maxRequest, Integer queueSize, String logLevel,
 			String validationType) {
