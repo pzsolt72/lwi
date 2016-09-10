@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingDeque;
 
-
+@Deprecated
 public class LogRequestHandler extends LwiAbstractHandler {
 
 	private static final int MAXBUFFER = 100000;

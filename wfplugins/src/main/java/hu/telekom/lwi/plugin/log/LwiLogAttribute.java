@@ -1,6 +1,6 @@
 package hu.telekom.lwi.plugin.log;
 
-public enum MessageLogAttribute {
+public enum LwiLogAttribute {
 
 	RequestId("MessageContext/RequestId", "eiMessageContext/requestId"),
 	CorrelationId("MessageContext/CorrelationId", "eiMessageContext/correlationId"),
@@ -12,7 +12,7 @@ public enum MessageLogAttribute {
 	
 	private String newOsbField;
 	private String techOsbField;
-	private MessageLogAttribute(String newOsbField, String techOsbField) {
+	private LwiLogAttribute(String newOsbField, String techOsbField) {
 		this.newOsbField = newOsbField;
 		this.techOsbField = techOsbField;
 	}
