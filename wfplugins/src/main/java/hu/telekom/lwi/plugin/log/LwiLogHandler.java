@@ -93,8 +93,7 @@ public class LwiLogHandler implements HttpHandler {
 			public void exchangeEvent(final HttpServerExchange exchange, final NextListener nextListener) {
 
 				if (conduitHandler != null) {
-					conduitHandler.getRequestConduit().getConduit().logRequest(false);
-					conduitHandler.getResponseConduit().getConduit().logResponse(false);
+					conduitHandler.log(false);
 				} else {
 					messageLog.info(String.format(responseLogMessage.toString(), getTimestamp()));
 				}
