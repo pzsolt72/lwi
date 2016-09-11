@@ -38,7 +38,7 @@ public class LwiLogHandler implements HttpHandler {
 	private HttpHandler next = null;
 
 	private final Logger log = Logger.getLogger(this.getClass());
-	private final Logger messageLog = Logger.getLogger("hu.telekom.lwi.message.log");
+	private final Logger messageLog = Logger.getLogger("LWI_LOG_MESSAGE");
 
 	public LwiLogHandler(HttpHandler next) {
 		this.next = next;

@@ -1,6 +1,8 @@
 package hu.telekom.lwi.plugin;
 
 import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,7 +21,12 @@ import io.undertow.server.HandlerWrapper;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.RequestLimit;
+import io.undertow.server.handlers.ResponseCodeHandler;
 import io.undertow.server.handlers.builder.HandlerBuilder;
+import io.undertow.server.handlers.proxy.LoadBalancingProxyClient;
+import io.undertow.server.handlers.proxy.ProxyConnectionPool;
+import io.undertow.server.handlers.proxy.ProxyHandler;
+import io.undertow.server.handlers.proxy.SimpleProxyClientProvider;
 import io.undertow.util.HttpString;
 
 /**
@@ -28,6 +35,11 @@ import io.undertow.util.HttpString;
  *
  */
 public class LwiHandler implements HttpHandler {
+	
+	private static String MUTEX = "MUTEX";
+	
+	private static LoadBalancingProxyClient lbpc = null;
+	
 	
 	private static final String LWI_REQUEST_ID_KEY = "X-Lwi-RequestId";
 
@@ -64,7 +76,18 @@ public class LwiHandler implements HttpHandler {
 	public LwiHandler(HttpHandler next) {
 		
 		log.debug("Init LwiHandler");
-
+		
+		synchronized (MUTEX) {
+			if (lbpc == null) {
+				lbpc = new LoadBalancingProxyClient();
+				try {
+					lbpc.addHost(new URI("http://localhost:8091/LwiMockTargets/GetMsisdn")).setConnectionsPerThread(10);
+				} catch (URISyntaxException e) {
+					log.fatal(e);
+				}
+			}
+		}
+		
 		this.next = next;
 	}
 
@@ -105,20 +128,23 @@ public class LwiHandler implements HttpHandler {
 
 		HttpHandler nnnext = next;
 		
+		// proxy
+		
+		//SimpleProxyClientProvider spcp = new SimpleProxyClientProvider(new URI("http://localhost:8091/LwiMockTargets/GetMsisdn"));
+		HttpHandler proxyhandler = new ProxyHandler(lbpc, 30000, ResponseCodeHandler.HANDLE_404);		
+		nnnext = proxyhandler;
+		
 		if ( true ) {
 			LwiLogHandler lwiLogHandler = new LwiLogHandler(nnnext);
 			nnnext = lwiLogHandler;
 		}
 		
 		// can be skipped!!
-		if ( !skipAuthentication ) {
-			
+		if ( !skipAuthentication ) {			
 			SecurityHandler securityHandler = new SecurityHandler(nnnext);			
 			nnnext = securityHandler;
 		}
 		
-			
-
 		requestLimitHandler.handleRequest(exchange, nnnext);
 
 	}
