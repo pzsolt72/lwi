@@ -23,6 +23,7 @@ import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+@Deprecated
 public class LogResponseHandler implements HttpHandler {
 
 	private static final int MAXBUFFER = 100000;

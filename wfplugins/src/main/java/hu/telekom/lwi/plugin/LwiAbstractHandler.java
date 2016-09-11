@@ -14,13 +14,5 @@ public abstract class LwiAbstractHandler implements HttpHandler  {
 		this.lwiContext = lwiContext;
 		
 	}
-	
-	
-	
-	
-	
-	
-	
-	
 
 }

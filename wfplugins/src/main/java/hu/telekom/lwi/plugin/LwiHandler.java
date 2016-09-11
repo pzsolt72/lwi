@@ -14,7 +14,7 @@ import org.jboss.logging.Logger;
 
 import hu.telekom.lwi.plugin.limit.RequestLimitHandler;
 import hu.telekom.lwi.plugin.log.LwiLogHandler;
-import hu.telekom.lwi.plugin.log.MessageLogLevel;
+import hu.telekom.lwi.plugin.log.LwiLogLevel;
 import hu.telekom.lwi.plugin.security.SecurityHandler;
 import io.undertow.io.Sender;
 import io.undertow.server.HandlerWrapper;
@@ -220,8 +220,8 @@ public class LwiHandler implements HttpHandler {
 		}
 
 		boolean validLogLevel = false;
-		for (int i = 0; i < MessageLogLevel.values().length; i++) {
-			MessageLogLevel ll = MessageLogLevel.values()[i];
+		for (int i = 0; i < LwiLogLevel.values().length; i++) {
+			LwiLogLevel ll = LwiLogLevel.values()[i];
 			if (ll.toString().equals(logLevel)) {
 				validLogLevel = true;
 				break;
