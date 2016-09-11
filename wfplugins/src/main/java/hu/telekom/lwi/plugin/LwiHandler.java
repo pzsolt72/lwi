@@ -107,6 +107,7 @@ public class LwiHandler implements HttpHandler {
 		
 		if ( true ) {
 			LwiLogHandler lwiLogHandler = new LwiLogHandler(nnnext);
+			lwiLogHandler.setLogLevel(logLevel);
 			nnnext = lwiLogHandler;
 		}
 		
