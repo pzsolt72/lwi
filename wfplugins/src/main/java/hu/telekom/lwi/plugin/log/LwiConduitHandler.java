@@ -32,9 +32,6 @@ public class LwiConduitHandler {
 	private LwiConduitWrapper<StreamSourceConduit, LwiRequestConduit> requestConduit;
 	private LwiConduitWrapper<StreamSinkConduit, LwiResponseConduit> responseConduit;
 	
-	private boolean exchangeCompleted = false;
-	private boolean logsCompleted = false;
-	
 	public LwiConduitHandler(Logger messageLog, LwiLogLevel logLevel, String requestLogMessage, String responseLogMessage, boolean contextFromMessage) {
 		this.messageLog = messageLog;
 		this.logLevel = logLevel;
@@ -68,19 +65,6 @@ public class LwiConduitHandler {
 				return responseConduit;
 			}
 		};
-	}
-	
-	public void exchangeCompleted() {
-		this.exchangeCompleted = true;
-	}
-
-	protected void completeLogs() {
-		if (exchangeCompleted && !logsCompleted) {
-			logsCompleted = true;
-			
-			requestConduit.getConduit().logRequest(false);
-			responseConduit.getConduit().logResponse(false);
-		}
 	}
 	
 	public LwiConduitWrapper<StreamSourceConduit, LwiRequestConduit> getRequestConduit() {
@@ -148,8 +132,6 @@ public class LwiConduitHandler {
 
 			if (requestBuffer.length() > MAXBUFFER) {
 				logRequest(true);
-			} else if (exchangeCompleted) {
-				completeLogs();
 			}
 
 			return res;
@@ -217,8 +199,6 @@ public class LwiConduitHandler {
 
 			if (responseBuffer.length() > MAXBUFFER) {
 				logResponse(true);
-			} else if (exchangeCompleted) {
-				completeLogs();
 			}
 
 			return res;

@@ -80,7 +80,8 @@ public class LwiLogHandler implements HttpHandler {
 			public void exchangeEvent(final HttpServerExchange exchange, final NextListener nextListener) {
 
 				if (conduitHandler != null) {
-					conduitHandler.exchangeCompleted();
+					conduitHandler.getRequestConduit().getConduit().logRequest(false);
+					conduitHandler.getResponseConduit().getConduit().logResponse(false);
 				} else {
 					messageLog.info(responseLogMessage);
 				}
