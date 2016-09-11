@@ -62,10 +62,10 @@ public class LwiLogHandler implements HttpHandler {
 			}
 		}
 
-		final LwiConduitHandler conduitHandler;
+		final LwiConduitWrapper conduitHandler;
 		
 		if (logLevel == LwiLogLevel.FULL || !infoFromHeaders) {
-			conduitHandler = new LwiConduitHandler(messageLog, logLevel, requestLogMessage.toString(), responseLogMessage.toString(), !infoFromHeaders);
+			conduitHandler = new LwiConduitWrapper(messageLog, logLevel, requestLogMessage.toString(), responseLogMessage.toString(), !infoFromHeaders);
 			
 			exchange.addRequestWrapper(conduitHandler.getRequestConduit());
 			exchange.addResponseWrapper(conduitHandler.getResponseConduit());
