@@ -22,23 +22,20 @@ import io.undertow.server.ConduitWrapper;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.ConduitFactory;
 
-public class LwiConduitHandler {
+public class LwiConduitWrapper {
 
 	private static final int MAXBUFFER = 100000;
 
 	private Logger messageLog;
 	private LwiLogLevel logLevel;
 	
-	private LwiConduitWrapper<StreamSourceConduit, LwiRequestConduit> requestConduit;
-	private LwiConduitWrapper<StreamSinkConduit, LwiResponseConduit> responseConduit;
+	private LwiConduit<StreamSourceConduit, LwiRequestConduit> requestConduit;
+	private LwiConduit<StreamSinkConduit, LwiResponseConduit> responseConduit;
 	
-	private boolean exchangeCompleted = false;
-	private boolean logsCompleted = false;
-	
-	public LwiConduitHandler(Logger messageLog, LwiLogLevel logLevel, String requestLogMessage, String responseLogMessage, boolean contextFromMessage) {
+	public LwiConduitWrapper(Logger messageLog, LwiLogLevel logLevel, String requestLogMessage, String responseLogMessage, boolean contextFromMessage) {
 		this.messageLog = messageLog;
 		this.logLevel = logLevel;
-		this.requestConduit = new LwiConduitWrapper<StreamSourceConduit, LwiRequestConduit>() {
+		this.requestConduit = new LwiConduit<StreamSourceConduit, LwiRequestConduit>() {
 			
 			private LwiRequestConduit requestConduit;
 
@@ -54,7 +51,7 @@ public class LwiConduitHandler {
 			}
 		};
 
-		this.responseConduit = new LwiConduitWrapper<StreamSinkConduit, LwiResponseConduit>() {
+		this.responseConduit = new LwiConduit<StreamSinkConduit, LwiResponseConduit>() {
 			
 			private LwiResponseConduit responseConduit;
 
@@ -70,29 +67,16 @@ public class LwiConduitHandler {
 		};
 	}
 	
-	public void exchangeCompleted() {
-		this.exchangeCompleted = true;
-	}
-
-	protected void completeLogs() {
-		if (exchangeCompleted && !logsCompleted) {
-			logsCompleted = true;
-			
-			requestConduit.getConduit().logRequest(false);
-			responseConduit.getConduit().logResponse(false);
-		}
-	}
-	
-	public LwiConduitWrapper<StreamSourceConduit, LwiRequestConduit> getRequestConduit() {
+	public LwiConduit<StreamSourceConduit, LwiRequestConduit> getRequestConduit() {
 		return requestConduit;
 	}
 
-	public LwiConduitWrapper<StreamSinkConduit, LwiResponseConduit> getResponseConduit() {
+	public LwiConduit<StreamSinkConduit, LwiResponseConduit> getResponseConduit() {
 		return responseConduit;
 	}
 
 
-	public interface LwiConduitWrapper<T extends Conduit, S extends T> extends ConduitWrapper<T> {
+	public interface LwiConduit<T extends Conduit, S extends T> extends ConduitWrapper<T> {
 		public S getConduit();
 	}
 
@@ -148,8 +132,6 @@ public class LwiConduitHandler {
 
 			if (requestBuffer.length() > MAXBUFFER) {
 				logRequest(true);
-			} else if (exchangeCompleted) {
-				completeLogs();
 			}
 
 			return res;
@@ -217,8 +199,6 @@ public class LwiConduitHandler {
 
 			if (responseBuffer.length() > MAXBUFFER) {
 				logResponse(true);
-			} else if (exchangeCompleted) {
-				completeLogs();
 			}
 
 			return res;
