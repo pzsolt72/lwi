@@ -76,7 +76,7 @@ public class LwiHandler implements HttpHandler {
 	public LwiHandler(HttpHandler next) {
 		
 		log.debug("Init LwiHandler");
-		
+	/*	
 		synchronized (MUTEX) {
 			if (lbpc == null) {
 				lbpc = new LoadBalancingProxyClient();
@@ -87,7 +87,7 @@ public class LwiHandler implements HttpHandler {
 				}
 			}
 		}
-		
+		*/
 		this.next = next;
 	}
 
@@ -131,11 +131,12 @@ public class LwiHandler implements HttpHandler {
 		// proxy
 		
 		//SimpleProxyClientProvider spcp = new SimpleProxyClientProvider(new URI("http://localhost:8091/LwiMockTargets/GetMsisdn"));
-		HttpHandler proxyhandler = new ProxyHandler(lbpc, 30000, ResponseCodeHandler.HANDLE_404);		
-		nnnext = proxyhandler;
+		//HttpHandler proxyhandler = new ProxyHandler(lbpc, 30000, ResponseCodeHandler.HANDLE_404);		
+		//nnnext = proxyhandler;
 		
 		if ( true ) {
 			LwiLogHandler lwiLogHandler = new LwiLogHandler(nnnext);
+			lwiLogHandler.setLogLevel(logLevel);
 			nnnext = lwiLogHandler;
 		}
 		
