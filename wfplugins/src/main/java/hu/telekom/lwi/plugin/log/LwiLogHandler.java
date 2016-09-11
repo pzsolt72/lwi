@@ -1,5 +1,8 @@
 package hu.telekom.lwi.plugin.log;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.jboss.logging.Logger;
 
 import hu.telekom.lwi.plugin.LwiHandler;
@@ -10,8 +13,8 @@ import io.undertow.server.HttpServerExchange;
 
 public class LwiLogHandler implements HttpHandler {
 
-	private static final String REQUEST_LOG_MAIN = "[%s][%s > %s.%s]";
-	private static final String RESPONSE_LOG_MAIN = "[%s][%s < %s.%s]";
+	private static final String REQUEST_LOG_MAIN = "[%s][%s][%s > %s.%s]";
+	private static final String RESPONSE_LOG_MAIN = "[%s][%s][%s < %s.%s]";
 	protected static final String CTX_LOG = "[RequestId: %s CorrelationId: %s UserId: %s]";
 	
 	private HttpHandler next = null;
@@ -38,14 +41,24 @@ public class LwiLogHandler implements HttpHandler {
 		if (exchange.getSecurityContext() != null && exchange.getSecurityContext().getAuthenticatedAccount() != null && exchange.getSecurityContext().getAuthenticatedAccount().getPrincipal() != null) {
 			caller = exchange.getSecurityContext().getAuthenticatedAccount().getPrincipal().getName();
 		}
-		
-		String provider = requestPath.length >= 2 ? requestPath[1] : LwiLogAttribute.EMPTY;
-		String operation = requestPath.length >= 3 ? requestPath[2] : LwiLogAttribute.EMPTY;
+
+		final int firstElementOnPath = 1; // set which part of the url should be parsed as provider and operation
+		String provider = LwiLogAttribute.EMPTY;
+		String operation = LwiLogAttribute.EMPTY;
+		for (int i = firstElementOnPath; i < requestPath.length; i++) {
+			if (i >= requestPath.length - 1) {
+				operation = requestPath[i];
+			} else if (i == firstElementOnPath) {
+				provider = requestPath[i];
+			} else {
+				provider += "."+requestPath[i];
+			}
+		}
 
 		boolean infoFromHeaders = true;
 
-		StringBuilder requestLogMessage = new StringBuilder(String.format(REQUEST_LOG_MAIN, lwiRequestId, caller, provider, operation));
-		StringBuilder responseLogMessage = new StringBuilder(String.format(RESPONSE_LOG_MAIN, lwiRequestId, caller, provider, operation));
+		StringBuilder requestLogMessage = new StringBuilder(String.format(REQUEST_LOG_MAIN, lwiRequestId, getTimestamp(), caller, provider, operation));
+		StringBuilder responseLogMessage = new StringBuilder(String.format(RESPONSE_LOG_MAIN, lwiRequestId, "%s", caller, provider, operation));
 		
 		if (logLevel != LwiLogLevel.MIN) {
 			
@@ -83,7 +96,7 @@ public class LwiLogHandler implements HttpHandler {
 					conduitHandler.getRequestConduit().getConduit().logRequest(false);
 					conduitHandler.getResponseConduit().getConduit().logResponse(false);
 				} else {
-					messageLog.info(responseLogMessage);
+					messageLog.info(String.format(responseLogMessage.toString(), getTimestamp()));
 				}
 
 				nextListener.proceed();
@@ -99,6 +112,11 @@ public class LwiLogHandler implements HttpHandler {
 	
 	public void setLogLevel(String logLevel) {
 		this.logLevel = LwiLogLevel.valueOf(logLevel);
+	}
+	
+	public static String getTimestamp() {
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
+		return sdf.format(new Date());
 	}
 
 }

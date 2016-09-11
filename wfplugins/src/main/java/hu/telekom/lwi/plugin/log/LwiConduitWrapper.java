@@ -174,12 +174,12 @@ public class LwiConduitWrapper {
 		public void logResponse(boolean partial) {
 			if (logLevel == LwiLogLevel.FULL) {
 				if (partCounter++ > 0 || partial) {
-					messageLog.info(String.format("%s[RESPONSE (partial response part - %d) > %s]", responseLog, (partial ? partCounter : "last"), LwiLogAttributeUtil.cleanseMessage(responseBuffer.toString())));
+					messageLog.info(String.format("%s[RESPONSE (partial response part - %s) > %s]", String.format(responseLog, LwiLogHandler.getTimestamp()), (partial ? partCounter : "last"), LwiLogAttributeUtil.cleanseMessage(responseBuffer.toString())));
 				} else {
-					messageLog.info(String.format("%s[RESPONSE > %s]", responseLog, LwiLogAttributeUtil.cleanseMessage(responseBuffer.toString())));
+					messageLog.info(String.format("%s[RESPONSE > %s]", String.format(responseLog, LwiLogHandler.getTimestamp()), LwiLogAttributeUtil.cleanseMessage(responseBuffer.toString())));
 				}
 			} else if (!partial) {
-				messageLog.info(responseLog);
+				messageLog.info(String.format(responseLog, LwiLogHandler.getTimestamp()));
 			}
 			responseBuffer.setLength(0);
 		}

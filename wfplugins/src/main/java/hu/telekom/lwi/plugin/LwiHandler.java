@@ -15,7 +15,7 @@ import org.jboss.logging.Logger;
 import hu.telekom.lwi.plugin.limit.RequestLimitHandler;
 import hu.telekom.lwi.plugin.log.LwiLogHandler;
 import hu.telekom.lwi.plugin.log.LwiLogLevel;
-import hu.telekom.lwi.plugin.security.SecurityHandler;
+import hu.telekom.lwi.plugin.security.LwiSecurityHandler;
 import io.undertow.io.Sender;
 import io.undertow.server.HandlerWrapper;
 import io.undertow.server.HttpHandler;
@@ -131,8 +131,8 @@ public class LwiHandler implements HttpHandler {
 		}
 
 		// can be skipped!!
-		if (!skipAuthentication) {
-			SecurityHandler securityHandler = new SecurityHandler(nnnext);
+		if ( !skipAuthentication ) {			
+			LwiSecurityHandler securityHandler = new LwiSecurityHandler(nnnext);			
 			nnnext = securityHandler;
 		}
 
