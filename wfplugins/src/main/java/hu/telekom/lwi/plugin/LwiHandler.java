@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import hu.telekom.lwi.plugin.validation.ValidationHandler;
 import org.jboss.logging.Logger;
 
 import hu.telekom.lwi.plugin.limit.RequestLimitHandler;
@@ -47,6 +48,7 @@ public class LwiHandler implements HttpHandler {
 	private String logLevel;
 	private String validationType;
 	private Boolean skipAuthentication = false;
+	private String wsdlLocation;
 
 	/*
 	 * public enum LogLevel { NONE, MIN, CTX, FULL };
@@ -54,7 +56,7 @@ public class LwiHandler implements HttpHandler {
 
 	public enum ValidationType {
 		NO, CTX, MSG
-	};
+	}
 
 	/**
 	 * 
@@ -95,7 +97,7 @@ public class LwiHandler implements HttpHandler {
 			validateHandlerParameters(maxRequest, queueSize, logLevel, validationType);
 
 
-		log.info(String.format("[%s] LwiHandler->handle %s maxRequests: %s, queueSize: %s, logLevel: %s,  validationType: %s, skipAuth: ",lwiRequestId, exchange.getRequestURL(), maxRequest, queueSize, logLevel, validationType, skipAuthentication));
+		log.info(String.format("[%s] LwiHandler->handle %s maxRequests: %s, queueSize: %s, logLevel: %s,  validationType: %s, skipAuth: %s",lwiRequestId, exchange.getRequestURL(), maxRequest, queueSize, logLevel, validationType, skipAuthentication));
 
 
 		if (requestLimitHandler == null) {
@@ -104,7 +106,14 @@ public class LwiHandler implements HttpHandler {
 		}
 
 		HttpHandler nnnext = next;
-		
+
+		if ( true ) {
+			ValidationHandler validationHandler = new ValidationHandler(nnnext);
+			validationHandler.setValidationType(validationType);
+			validationHandler.setWsdlLocation(wsdlLocation);
+			nnnext = validationHandler;
+		}
+
 		if ( true ) {
 			LwiLogHandler lwiLogHandler = new LwiLogHandler(nnnext);
 			nnnext = lwiLogHandler;
@@ -172,8 +181,14 @@ public class LwiHandler implements HttpHandler {
 	public void setValidationType(String validationType) {
 		this.validationType = validationType;
 	}
-	
-	
+
+	public String getWsdlLocation() {
+		return wsdlLocation;
+	}
+
+	public void setWsdlLocation(String wsdlLocation) {
+		this.wsdlLocation = wsdlLocation;
+	}
 
 	public Boolean getSkipAuthentication() {
 		return skipAuthentication;
