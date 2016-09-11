@@ -23,9 +23,9 @@ import io.undertow.security.impl.ClientCertAuthenticationMechanism;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 
-public class SecurityHandler implements HttpHandler, IdentityManager {
+public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 	
-	private static final Logger log = Logger.getLogger(SecurityHandler.class);
+	private static final Logger log = Logger.getLogger(LwiSecurityHandler.class);
 	
 	private static final String REALM = "LWI_REALM";
 	
@@ -34,7 +34,7 @@ public class SecurityHandler implements HttpHandler, IdentityManager {
 	private AuthenticationMechanismsHandler mechanismsHandler;
 	private AuthenticationCallHandler authenticationCallHandler;
 	
-	public SecurityHandler(HttpHandler next) {
+	public LwiSecurityHandler(HttpHandler next) {
 		List<AuthenticationMechanism> mechanisms = new ArrayList<AuthenticationMechanism>();
 		
 		mechanisms.add(new BasicAuthenticationMechanism(REALM));
