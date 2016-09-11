@@ -22,23 +22,20 @@ import io.undertow.server.ConduitWrapper;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.ConduitFactory;
 
-public class LwiConduitHandler {
+public class LwiConduitWrapper {
 
 	private static final int MAXBUFFER = 100000;
 
 	private Logger messageLog;
 	private LwiLogLevel logLevel;
 	
-	private LwiConduitWrapper<StreamSourceConduit, LwiRequestConduit> requestConduit;
-	private LwiConduitWrapper<StreamSinkConduit, LwiResponseConduit> responseConduit;
+	private LwiConduit<StreamSourceConduit, LwiRequestConduit> requestConduit;
+	private LwiConduit<StreamSinkConduit, LwiResponseConduit> responseConduit;
 	
-	private boolean exchangeCompleted = false;
-	private boolean logsCompleted = false;
-	
-	public LwiConduitHandler(Logger messageLog, LwiLogLevel logLevel, String requestLogMessage, String responseLogMessage, boolean contextFromMessage) {
+	public LwiConduitWrapper(Logger messageLog, LwiLogLevel logLevel, String requestLogMessage, String responseLogMessage, boolean contextFromMessage) {
 		this.messageLog = messageLog;
 		this.logLevel = logLevel;
-		this.requestConduit = new LwiConduitWrapper<StreamSourceConduit, LwiRequestConduit>() {
+		this.requestConduit = new LwiConduit<StreamSourceConduit, LwiRequestConduit>() {
 			
 			private LwiRequestConduit requestConduit;
 
@@ -54,7 +51,7 @@ public class LwiConduitHandler {
 			}
 		};
 
-		this.responseConduit = new LwiConduitWrapper<StreamSinkConduit, LwiResponseConduit>() {
+		this.responseConduit = new LwiConduit<StreamSinkConduit, LwiResponseConduit>() {
 			
 			private LwiResponseConduit responseConduit;
 
@@ -69,30 +66,29 @@ public class LwiConduitHandler {
 			}
 		};
 	}
-	
-	public void exchangeCompleted() {
-		this.exchangeCompleted = true;
-	}
 
-	protected void completeLogs() {
-		if (exchangeCompleted && !logsCompleted) {
-			logsCompleted = true;
-			
-			requestConduit.getConduit().logRequest(false);
-			responseConduit.getConduit().logResponse(false);
+	public void log(boolean partial) {
+		log(false, partial);
+	}
+	
+	public void log(boolean onlyRequest, boolean partial) {
+		// if we are logging not onlyRequest then request must have been at the end (not partial)
+		getRequestConduit().getConduit().logRequest(onlyRequest && partial);
+		if (!onlyRequest) {
+			getResponseConduit().getConduit().logResponse(partial);
 		}
 	}
 	
-	public LwiConduitWrapper<StreamSourceConduit, LwiRequestConduit> getRequestConduit() {
+	public LwiConduit<StreamSourceConduit, LwiRequestConduit> getRequestConduit() {
 		return requestConduit;
 	}
 
-	public LwiConduitWrapper<StreamSinkConduit, LwiResponseConduit> getResponseConduit() {
+	public LwiConduit<StreamSinkConduit, LwiResponseConduit> getResponseConduit() {
 		return responseConduit;
 	}
 
 
-	public interface LwiConduitWrapper<T extends Conduit, S extends T> extends ConduitWrapper<T> {
+	public interface LwiConduit<T extends Conduit, S extends T> extends ConduitWrapper<T> {
 		public S getConduit();
 	}
 
@@ -103,6 +99,8 @@ public class LwiConduitHandler {
 		private int partCounter = 0;
 		private boolean contextFromMessage;
 		
+		private boolean logAvailable = false;
+		
 		protected LwiRequestConduit(StreamSourceConduit next, String requestLog, boolean contextFromMessage) {
 			super(next);
 			this.requestLog = requestLog;
@@ -111,25 +109,28 @@ public class LwiConduitHandler {
 		}
 
 		public void logRequest(boolean partial) {
-			if (contextFromMessage) {
-				String requestId = LwiLogAttributeUtil.getMessageAttribute(LwiLogAttribute.RequestId, requestBuffer.toString());
-				String correlationId = LwiLogAttributeUtil.getMessageAttribute(LwiLogAttribute.CorrelationId, requestBuffer.toString());
-				String userId = LwiLogAttributeUtil.getMessageAttribute(LwiLogAttribute.UserId, requestBuffer.toString());
-
-				requestLog += String.format(LwiLogHandler.CTX_LOG, requestId, correlationId, userId);
-				contextFromMessage = false;
-			}
-			
-			if (logLevel == LwiLogLevel.FULL) {
-				if (partCounter++ > 0 || partial) {
-					messageLog.info(String.format("%s[REQUEST (partial request part - %s) > %s]", requestLog, (partial ? partCounter : "last"), LwiLogAttributeUtil.cleanseMessage(requestBuffer.toString())));
-				} else {
-					messageLog.info(String.format("%s[REQUEST > %s]", requestLog, LwiLogAttributeUtil.cleanseMessage(requestBuffer.toString())));
+			if (logAvailable) {
+				if (contextFromMessage) {
+					String requestId = LwiLogAttributeUtil.getMessageAttribute(LwiLogAttribute.RequestId, requestBuffer.toString());
+					String correlationId = LwiLogAttributeUtil.getMessageAttribute(LwiLogAttribute.CorrelationId, requestBuffer.toString());
+					String userId = LwiLogAttributeUtil.getMessageAttribute(LwiLogAttribute.UserId, requestBuffer.toString());
+	
+					requestLog += String.format(LwiLogHandler.CTX_LOG, requestId, correlationId, userId);
+					contextFromMessage = false;
 				}
-			} else if (!partial) {
-				messageLog.info(requestLog);
+				
+				if (logLevel == LwiLogLevel.FULL) {
+					if (partCounter++ > 0 || partial) {
+						messageLog.info(String.format("%s[REQUEST (partial request part - %s) > %s]", requestLog, (partial ? partCounter : "last"), LwiLogAttributeUtil.cleanseMessage(requestBuffer.toString())));
+					} else {
+						messageLog.info(String.format("%s[REQUEST > %s]", requestLog, LwiLogAttributeUtil.cleanseMessage(requestBuffer.toString())));
+					}
+				} else if (!partial) {
+					messageLog.info(requestLog);
+				}
+				requestBuffer.setLength(0);
+				logAvailable = false;
 			}
-			requestBuffer.setLength(0);
 		}
 
 		@Override
@@ -146,10 +147,10 @@ public class LwiConduitHandler {
 				requestBuffer.append(new String(d));
 			}
 
+			logAvailable = true;
+
 			if (requestBuffer.length() > MAXBUFFER) {
-				logRequest(true);
-			} else if (exchangeCompleted) {
-				completeLogs();
+				log(true, true);
 			}
 
 			return res;
@@ -182,6 +183,8 @@ public class LwiConduitHandler {
 		private String responseLog;
 		private StringBuffer responseBuffer;
 		private int partCounter = 0;
+		
+		private boolean logAvailable = false;
 
 		protected LwiResponseConduit(StreamSinkConduit next, String responseLog) {
 			super(next);
@@ -190,16 +193,19 @@ public class LwiConduitHandler {
 		}
 
 		public void logResponse(boolean partial) {
-			if (logLevel == LwiLogLevel.FULL) {
-				if (partCounter++ > 0 || partial) {
-					messageLog.info(String.format("%s[RESPONSE (partial response part - %d) > %s]", responseLog, (partial ? partCounter : "last"), LwiLogAttributeUtil.cleanseMessage(responseBuffer.toString())));
-				} else {
-					messageLog.info(String.format("%s[RESPONSE > %s]", responseLog, LwiLogAttributeUtil.cleanseMessage(responseBuffer.toString())));
+			if (logAvailable) {
+				if (logLevel == LwiLogLevel.FULL) {
+					if (partCounter++ > 0 || partial) {
+						messageLog.info(String.format("%s[RESPONSE (partial response part - %s) > %s]", String.format(responseLog, LwiLogHandler.getTimestamp()), (partial ? partCounter : "last"), LwiLogAttributeUtil.cleanseMessage(responseBuffer.toString())));
+					} else {
+						messageLog.info(String.format("%s[RESPONSE > %s]", String.format(responseLog, LwiLogHandler.getTimestamp()), LwiLogAttributeUtil.cleanseMessage(responseBuffer.toString())));
+					}
+				} else if (!partial) {
+					messageLog.info(String.format(responseLog, LwiLogHandler.getTimestamp()));
 				}
-			} else if (!partial) {
-				messageLog.info(responseLog);
+				logAvailable = false;
+				responseBuffer.setLength(0);
 			}
-			responseBuffer.setLength(0);
 		}
 
 		@Override
@@ -215,10 +221,10 @@ public class LwiConduitHandler {
 				responseBuffer.append(new String(d));
 			}
 
+			logAvailable = true;
+
 			if (responseBuffer.length() > MAXBUFFER) {
-				logResponse(true);
-			} else if (exchangeCompleted) {
-				completeLogs();
+				log(true);
 			}
 
 			return res;
