@@ -35,12 +35,10 @@ import io.undertow.util.HttpString;
  *
  */
 public class LwiHandler implements HttpHandler {
-	
+
 	private static String MUTEX = "MUTEX";
-	
-	private static LoadBalancingProxyClient lbpc = null;
-	
-	
+	private static Map<String, LoadBalancingProxyClient> proxyMap = new HashMap<>();
+
 	private static final String LWI_REQUEST_ID_KEY = "X-Lwi-RequestId";
 
 	private static final String REQUEST_LIMIT_ERROR_MSG = "Request limit exceeded! max request allowed: %s, queue size: %s";
@@ -49,8 +47,8 @@ public class LwiHandler implements HttpHandler {
 	private RequestLimit requestLimitHandler = null;
 
 	private boolean parametersAreValidated = false;
-	
-	private final Logger log = Logger.getLogger(LwiHandler.class);	
+
+	private final Logger log = Logger.getLogger(LwiHandler.class);
 
 	private HttpHandler next;
 
@@ -59,6 +57,8 @@ public class LwiHandler implements HttpHandler {
 	private String logLevel;
 	private String validationType;
 	private Boolean skipAuthentication = false;
+	private String backEndServiceUrl;
+	private Integer backEndConnections;
 
 	/*
 	 * public enum LogLevel { NONE, MIN, CTX, FULL };
@@ -74,52 +74,42 @@ public class LwiHandler implements HttpHandler {
 	 */
 
 	public LwiHandler(HttpHandler next) {
-		
+
 		log.debug("Init LwiHandler");
-	/*	
-		synchronized (MUTEX) {
-			if (lbpc == null) {
-				lbpc = new LoadBalancingProxyClient();
-				try {
-					lbpc.addHost(new URI("http://localhost:8091/LwiMockTargets/GetMsisdn")).setConnectionsPerThread(10);
-				} catch (URISyntaxException e) {
-					log.fatal(e);
-				}
-			}
-		}
-		*/
+
 		this.next = next;
 	}
 
-	public LwiHandler(HttpHandler next, Integer maxRequest, Integer queueSize, String logLevel, String validationType, Boolean skipAuthentication) {
+	public LwiHandler(HttpHandler next, Integer maxRequest, Integer queueSize, String logLevel, String validationType,
+			Boolean skipAuthentication) {
 
 		log.debug("Init LwiHandler");
-		
-		this.next = next;		
+
+		this.next = next;
 		this.maxRequest = maxRequest;
 		this.queueSize = queueSize;
 		this.logLevel = logLevel;
 		this.validationType = validationType;
 		this.skipAuthentication = skipAuthentication;
 
-		validateHandlerParameters(maxRequest, queueSize, logLevel, validationType);		
-		
+		validateHandlerParameters();
 
 	}
 
 	@Override
 	public void handleRequest(HttpServerExchange exchange) throws Exception {
-		
+
 		String lwiRequestId = generateLwiReqId();
-		
+
 		exchange.getRequestHeaders().add(new HttpString(LWI_REQUEST_ID_KEY), lwiRequestId);
 
 		if (!parametersAreValidated)
-			validateHandlerParameters(maxRequest, queueSize, logLevel, validationType);
+			validateHandlerParameters();
 
-
-		log.info(String.format("[%s] LwiHandler->handle %s maxRequests: %s, queueSize: %s, logLevel: %s,  validationType: %s, skipAuth: ",lwiRequestId, exchange.getRequestURL(), maxRequest, queueSize, logLevel, validationType, skipAuthentication));
-
+		log.info(String.format(
+				"[%s] LwiHandler->handle %s maxRequests: %s, queueSize: %s, logLevel: %s,  validationType: %s, skipAuth: ",
+				lwiRequestId, exchange.getRequestURL(), maxRequest, queueSize, logLevel, validationType,
+				skipAuthentication));
 
 		if (requestLimitHandler == null) {
 			requestLimitHandler = new RequestLimit(maxRequest, queueSize);
@@ -127,30 +117,51 @@ public class LwiHandler implements HttpHandler {
 		}
 
 		HttpHandler nnnext = next;
-		
+
 		// proxy
-		
-		//SimpleProxyClientProvider spcp = new SimpleProxyClientProvider(new URI("http://localhost:8091/LwiMockTargets/GetMsisdn"));
-		//HttpHandler proxyhandler = new ProxyHandler(lbpc, 30000, ResponseCodeHandler.HANDLE_404);		
-		//nnnext = proxyhandler;
-		
-		if ( true ) {
+		LoadBalancingProxyClient lbpc = getProxyClient();
+
+		ProxyHandler proxyhandler = new ProxyHandler(lbpc, 30000, ResponseCodeHandler.HANDLE_404);
+		nnnext = proxyhandler;
+
+		if (true) {
 			LwiLogHandler lwiLogHandler = new LwiLogHandler(nnnext);
 			lwiLogHandler.setLogLevel(logLevel);
 			nnnext = lwiLogHandler;
 		}
-		
+
 		// can be skipped!!
-		if ( !skipAuthentication ) {			
-			SecurityHandler securityHandler = new SecurityHandler(nnnext);			
+		if (!skipAuthentication) {
+			SecurityHandler securityHandler = new SecurityHandler(nnnext);
 			nnnext = securityHandler;
 		}
-		
+
 		requestLimitHandler.handleRequest(exchange, nnnext);
 
 	}
-	
-	
+
+	private LoadBalancingProxyClient getProxyClient() {
+
+		LoadBalancingProxyClient retval = proxyMap.get(backEndServiceUrl);
+
+		if (retval == null) {
+
+			synchronized (MUTEX) {
+
+				retval = new LoadBalancingProxyClient();
+				try {
+					retval.addHost(new URI(backEndServiceUrl)).setConnectionsPerThread(backEndConnections);
+					proxyMap.put(backEndServiceUrl, retval);
+				} catch (URISyntaxException e) {
+					log.fatal(e);
+				}
+			}
+
+		}
+
+		return retval;
+	}
+
 	public static String getLwiRequestId(HttpServerExchange exchange) {
 		try {
 			return exchange.getRequestHeaders().get(LWI_REQUEST_ID_KEY).getFirst();
@@ -158,7 +169,6 @@ public class LwiHandler implements HttpHandler {
 			return "N/A";
 		}
 	}
-	
 
 	public HttpHandler getNext() {
 		return next;
@@ -199,8 +209,6 @@ public class LwiHandler implements HttpHandler {
 	public void setValidationType(String validationType) {
 		this.validationType = validationType;
 	}
-	
-	
 
 	public Boolean getSkipAuthentication() {
 		return skipAuthentication;
@@ -210,8 +218,23 @@ public class LwiHandler implements HttpHandler {
 		this.skipAuthentication = skipAuthentication;
 	}
 
-	private void validateHandlerParameters(Integer maxRequest, Integer queueSize, String logLevel,
-			String validationType) {
+	public String getBackEndServiceUrl() {
+		return backEndServiceUrl;
+	}
+
+	public void setBackEndServiceUrl(String backEndServiceUrl) {
+		this.backEndServiceUrl = backEndServiceUrl;
+	}
+
+	public Integer getBackEndConnections() {
+		return backEndConnections;
+	}
+
+	public void setBackEndConnections(Integer backEndConnections) {
+		this.backEndConnections = backEndConnections;
+	}
+
+	private void validateHandlerParameters() {
 		if (maxRequest == null) {
 			throw new RuntimeException("Set the LwiHandler.maxRequest value properly! e.g.:  20");
 		}
@@ -220,6 +243,15 @@ public class LwiHandler implements HttpHandler {
 			throw new RuntimeException("Set the LwiHandler.queueSize value properly! e.g.:  20");
 		}
 
+		if (backEndConnections == null) {
+			throw new RuntimeException("Set the LwiHandler.backEndConnections value properly! e.g.:  10");
+		}
+		
+		if (backEndServiceUrl == null) {
+			throw new RuntimeException("Set the LwiHandler.backEndServiceUrl value properly! e.g.:  http://localhost:8091/lwi/cnr/getMsisdn");
+		}
+		
+		
 		boolean validLogLevel = false;
 		for (int i = 0; i < LwiLogLevel.values().length; i++) {
 			LwiLogLevel ll = LwiLogLevel.values()[i];
@@ -251,7 +283,7 @@ public class LwiHandler implements HttpHandler {
 
 		@Override
 		public void handleRequest(HttpServerExchange exchange) throws Exception {
-			
+
 			log.warn(String.format(REQUEST_LIMIT_ERROR_MSG, maxRequest, queueSize) + " " + exchange.getRequestURI());
 
 			exchange.setStatusCode(REQUEST_LIMIT_ERROR_CODE);
@@ -261,26 +293,25 @@ public class LwiHandler implements HttpHandler {
 		}
 
 	}
-	
+
 	private String generateLwiReqId() {
 		char[] chars = "abcdefghijklmnopqrstuvwxyz".toCharArray();
 		StringBuilder sb = new StringBuilder("lwiId-");
 		Random random = new Random();
 		for (int i = 0; i < 3; i++) {
-		    char c = chars[random.nextInt(chars.length)];
-		    sb.append(c);
+			char c = chars[random.nextInt(chars.length)];
+			sb.append(c);
 		}
 		sb.append(System.currentTimeMillis());
 		String output = sb.toString();
-		
-		return output;
-	} 
 
-	
+		return output;
+	}
+
 	/*
 	 * EZ MÉG NEM MŰKÖDIK A CONFIGBÓL!!!
 	 */
-	
+
 	public static final class Wrapper implements HandlerWrapper {
 
 		private Integer maxRequest;
@@ -289,7 +320,8 @@ public class LwiHandler implements HttpHandler {
 		private String validationType;
 		private Boolean skipAuthentication;
 
-		public Wrapper(Integer maxRequest, Integer queueSize, String logLevel, String validationType, Boolean skipAuthentication) {
+		public Wrapper(Integer maxRequest, Integer queueSize, String logLevel, String validationType,
+				Boolean skipAuthentication) {
 			super();
 			this.maxRequest = maxRequest;
 			this.queueSize = queueSize;
@@ -320,7 +352,7 @@ public class LwiHandler implements HttpHandler {
 			ret.put("logLevel", String.class);
 			ret.put("validationType", String.class);
 			ret.put("skipAuthentication", String.class);
-			
+
 			return ret;
 		}
 
@@ -337,7 +369,8 @@ public class LwiHandler implements HttpHandler {
 		@Override
 		public HandlerWrapper build(Map<String, Object> config) {
 			return new Wrapper((Integer) config.get("maxRequest"), (Integer) config.get("queueSize"),
-					(String) config.get("logLevel"), (String) config.get("validationType"), (Boolean)config.get("skipAuthentication"));
+					(String) config.get("logLevel"), (String) config.get("validationType"),
+					(Boolean) config.get("skipAuthentication"));
 		}
 	}
 
