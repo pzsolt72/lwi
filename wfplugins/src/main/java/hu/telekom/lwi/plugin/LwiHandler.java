@@ -130,7 +130,7 @@ public class LwiHandler implements HttpHandler {
 		if ( true ) {
 			ValidationHandler validationHandler = new ValidationHandler(nnnext);
 			validationHandler.setValidationType(validationType);
-			validationHandler.setWsdlLocation(wsdlLocation);
+			validationHandler.setWsdlLocation(backEndServiceUrl + "?WSDL");
 			nnnext = validationHandler;
 		}
 
