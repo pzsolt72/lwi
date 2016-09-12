@@ -131,6 +131,7 @@ public class ValidationHandler implements HttpHandler {
                     } else {
 
                         // 4. http header
+                        // TODO ha nincs msg, ezt akkor is lehet vizsgalni
                         requestId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.RequestId);
                         if (requestId != null) {
                             log.debug("HTTP Header requestId detected");
