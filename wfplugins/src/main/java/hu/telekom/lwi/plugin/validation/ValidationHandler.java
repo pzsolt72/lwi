@@ -51,7 +51,7 @@ public class ValidationHandler implements HttpHandler {
             String reqContent = getRequestMessage(httpServerExchange);
             log.info(logPrefix + "message retrieved");
             log.info(logPrefix + "message: " + reqContent.substring(0,reqContent.length() > 1000 ? 1000 : reqContent.length()));
-            log.info(logPrefix + "resource: " + org.reficio.ws.legacy.SoapLegacyFacade.class.getClass().getResource("/xsds/xop.xsd").toExternalForm());
+            log.info(logPrefix + "resource: " + this.getClass().getResource("/xsds/xop.xsd").toExternalForm());
             if (reqContent == null || reqContent.length() == 0) {
                 log.error(logPrefix + "no msg found in lwi context");
             } else {
