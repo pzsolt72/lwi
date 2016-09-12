@@ -12,10 +12,14 @@ import org.reficio.ws.SoapValidationException;
 import org.reficio.ws.builder.SoapBuilder;
 import org.reficio.ws.builder.SoapOperation;
 import org.reficio.ws.builder.core.Wsdl;
+import org.w3c.dom.Document;
 import org.xnio.ChannelListener;
 import org.xnio.IoUtils;
 import org.xnio.channels.StreamSourceChannel;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -28,6 +32,7 @@ public class ValidationHandler implements HttpHandler {
     private ValidationType validationType = ValidationType.MSG;
     private String wsdlLocation = null;
     private HttpHandler next = null;
+    String msg = null;
 
 
     public ValidationHandler(HttpHandler next) {
@@ -45,14 +50,14 @@ public class ValidationHandler implements HttpHandler {
     @Override
     public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
         log.info(logPrefix + "handle start...");
-
+        boolean validationOk = true;
         if (validationType == ValidationType.MSG) {
             log.info(logPrefix + "validating by message...");
             String reqContent = getRequestMessage(httpServerExchange);
             log.info(logPrefix + "message retrieved");
             log.info(logPrefix + "message: " + reqContent.substring(0,reqContent.length() > 1000 ? 1000 : reqContent.length()));
-            log.info(logPrefix + "resource: " + this.getClass().getResource("/xsds/xop.xsd").toExternalForm());
-            if (reqContent == null || reqContent.length() == 0) {
+            //log.info(logPrefix + "resource: " + this.getClass().getResource("/xsds/xop.xsd").toExternalForm());
+            if (reqContent.length() == 0) {
                 log.error(logPrefix + "no msg found in lwi context");
             } else {
                 if (wsdlLocation == null) {
@@ -85,17 +90,67 @@ public class ValidationHandler implements HttpHandler {
             }
         } else if (validationType == ValidationType.CTX) {
             log.debug(logPrefix + "validating by context...");
-            String requestId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.RequestId);
-            if (requestId != null && requestId.length() > 0) {
-                log.debug(logPrefix + "found requestId in http header...");
-                validateHttpHeader(httpServerExchange);
-            } else if (requestHasTechOsbContext()) {
-                validateTechOsbContext();
-            } else if (requestHasNewOsbContext()) {
-                validateNewOsbContext();
-            } else {
-                // TODO unknown context
+            String reqContent = getRequestMessage(httpServerExchange);
+            Document doc = null;
+            try {
+                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+                doc = dBuilder.parse(new ByteArrayInputStream(reqContent.getBytes())); // TODO encoding?
+            } catch (Exception e) {
+                // not a soap message
             }
+            String requestId;
+            String correlationId;
+            String userId;
+
+            // 1. soap attribute
+            requestId = LwiLogAttributeUtil.getSoapAttribute(doc, LwiLogAttribute.RequestId);
+            if (requestId != null) { // ha talalt requestId-t, akkor a tobbit is ott varja
+                log.debug("Soap attribute requestId detected");
+                correlationId = LwiLogAttributeUtil.getSoapAttribute(doc, LwiLogAttribute.CorrelationId);
+                userId = LwiLogAttributeUtil.getSoapAttribute(doc, LwiLogAttribute.UserId);
+                validationOk = isValidationOk(requestId, correlationId, userId);
+            } else {
+
+                // 2. tech osb
+                requestId = LwiLogAttributeUtil.getTechOSBAttribute(doc, LwiLogAttribute.RequestId);
+                if (requestId != null) {
+                    log.debug("TechOSB requestId detected");
+                    correlationId = LwiLogAttributeUtil.getTechOSBAttribute(doc, LwiLogAttribute.CorrelationId);
+                    userId = LwiLogAttributeUtil.getTechOSBAttribute(doc, LwiLogAttribute.UserId);
+                    validationOk = isValidationOk(requestId, correlationId, userId);
+                } else {
+
+                    // 3. new osb
+                    requestId = LwiLogAttributeUtil.getNewOSBAttribute(doc, LwiLogAttribute.RequestId);
+                    if (requestId != null) {
+                        log.debug("NewOSB requestId detected");
+                        correlationId = LwiLogAttributeUtil.getNewOSBAttribute(doc, LwiLogAttribute.CorrelationId);
+                        userId = LwiLogAttributeUtil.getNewOSBAttribute(doc, LwiLogAttribute.UserId);
+                        validationOk = isValidationOk(requestId, correlationId, userId);
+                    } else {
+
+                        // 4. http header
+                        requestId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.RequestId);
+                        if (requestId != null) {
+                            log.debug("HTTP Header requestId detected");
+                            correlationId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.CorrelationId);
+                            userId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.UserId);
+                            validationOk = isValidationOk(requestId, correlationId, userId);
+                        } else {
+                            validationOk = false;
+                            log.error("No applicable context detected");
+                        }
+                    }
+                }
+            }
+        }
+
+        if (validationOk) {
+            log.info(logPrefix + "Validation OK.");
+        } else {
+            log.error(logPrefix + "Validation FAILED.");
+            // TODO 500
         }
 
         log.debug(logPrefix + "handle complete");
@@ -104,38 +159,16 @@ public class ValidationHandler implements HttpHandler {
 
     }
 
-    private boolean requestHasNewOsbContext() {
-        return false;
-    }
-
-    private void validateTechOsbContext() {
-
-    }
-
-    private void validateNewOsbContext() {
-
-    }
-
-    private boolean requestHasTechOsbContext() {
-        return false;
-    }
-
-    private void validateHttpHeader(HttpServerExchange httpServerExchange) {
-        String correlationId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.CorrelationId);
-        if (correlationId == null || correlationId.length() == 0) {
-            log.info(logPrefix + "empty correlationId");
-            // TODO 500
+    private boolean isValidationOk(String requestId, String correlationId, String userId) {
+        boolean validationOk = true;
+        if (correlationId == null || userId == null) {
+            validationOk = false;
+            log.error("Attribute validation failed! requestId=" + requestId + ", correlationId=" + correlationId + ", userId=" + userId);
         }
-        String userId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.UserId);
-        if (userId == null || userId.length() == 0) {
-            log.info(logPrefix + "empty userId");
-            // TODO 500
-        }
+        return validationOk;
     }
 
     private String getRequestMessage(HttpServerExchange exchange) {
-        String msg = null;
-
         if (msg == null) {
             try {
                 final StreamSourceChannel channel = exchange.getRequestChannel();
@@ -216,7 +249,7 @@ public class ValidationHandler implements HttpHandler {
                     }
                 } while (true);
 
-                StringBuffer sb = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 String charset = exchange.getRequestCharset() != null ? exchange.getRequestCharset() : "UTF-8";
                 for (int i = 0; i < bufferedData.length; i++) {
                     if (bufferedData[i] == null) break;
@@ -235,8 +268,6 @@ public class ValidationHandler implements HttpHandler {
                 Connectors.ungetRequestBytes(exchange, bufferedData);
                 Connectors.resetRequestChannel(exchange);
 
-            } catch (UnsupportedEncodingException e) {
-                log.error(logPrefix, "Unable to get request message", e);
             } catch (IOException e) {
                 log.error(logPrefix, "Unable to get request message", e);
             }
