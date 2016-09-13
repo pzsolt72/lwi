@@ -1,0 +1,8 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:lwit="http://telekom.hu/LwiTestService/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <lwit:helloLwi  RequestId="123456" CorrelationId="co555111" UserId="soapui-tester">
+         <in>LWI</in>
+      </lwit:helloLwi>
+   </soapenv:Body>
+</soapenv:Envelope>
