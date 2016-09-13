@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import hu.telekom.lwi.plugin.validation.ValidationHandler;
 import org.jboss.logging.Logger;
 
 import hu.telekom.lwi.plugin.limit.RequestLimitHandler;
@@ -47,8 +48,8 @@ public class LwiHandler implements HttpHandler {
 	private RequestLimit requestLimitHandler = null;
 
 	private boolean parametersAreValidated = false;
-
-	private final Logger log = Logger.getLogger(LwiHandler.class);
+	
+	private final Logger log = Logger.getLogger(LwiHandler.class);	
 
 	private HttpHandler next;
 
@@ -66,7 +67,7 @@ public class LwiHandler implements HttpHandler {
 
 	public enum ValidationType {
 		NO, CTX, MSG
-	};
+	}
 
 	/**
 	 * 
@@ -74,7 +75,7 @@ public class LwiHandler implements HttpHandler {
 	 */
 
 	public LwiHandler(HttpHandler next) {
-
+		
 		log.debug("Init LwiHandler");
 
 		this.next = next;
@@ -107,9 +108,11 @@ public class LwiHandler implements HttpHandler {
 			validateHandlerParameters();
 
 		log.info(String.format(
-				"[%s] LwiHandler->handle %s maxRequests: %s, queueSize: %s, logLevel: %s,  validationType: %s, skipAuth: ",
+				"[%s] LwiHandler->handle %s maxRequests: %s, queueSize: %s, logLevel: %s,  validationType: %s, skipAuth: %s",
 				lwiRequestId, exchange.getRequestURL(), maxRequest, queueSize, logLevel, validationType,
 				skipAuthentication));
+
+
 
 		if (requestLimitHandler == null) {
 			requestLimitHandler = new RequestLimit(maxRequest, queueSize);
@@ -124,7 +127,14 @@ public class LwiHandler implements HttpHandler {
 		ProxyHandler proxyhandler = new ProxyHandler(lbpc, 30000, ResponseCodeHandler.HANDLE_404);
 		nnnext = proxyhandler;
 
-		if (true) {
+		if ( true ) {
+			ValidationHandler validationHandler = new ValidationHandler(nnnext);
+			validationHandler.setValidationType(validationType);
+			validationHandler.setWsdlLocation(backEndServiceUrl + "?WSDL");
+			nnnext = validationHandler;
+		}
+
+		if ( true ) {
 			LwiLogHandler lwiLogHandler = new LwiLogHandler(nnnext);
 			lwiLogHandler.setLogLevel(logLevel);
 			nnnext = lwiLogHandler;
@@ -209,6 +219,8 @@ public class LwiHandler implements HttpHandler {
 	public void setValidationType(String validationType) {
 		this.validationType = validationType;
 	}
+	
+	
 
 	public Boolean getSkipAuthentication() {
 		return skipAuthentication;
