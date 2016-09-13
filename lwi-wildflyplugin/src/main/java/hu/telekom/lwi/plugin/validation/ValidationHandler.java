@@ -4,6 +4,7 @@ import hu.telekom.lwi.plugin.log.LwiLogAttribute;
 import hu.telekom.lwi.plugin.util.LwiLogAttributeUtil;
 import io.undertow.UndertowLogger;
 import io.undertow.connector.PooledByteBuffer;
+import io.undertow.io.Sender;
 import io.undertow.server.Connectors;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
@@ -26,6 +27,8 @@ import java.nio.ByteBuffer;
 
 public class ValidationHandler implements HttpHandler {
 
+    private static final int VALIDATION_ERROR_CODE = 500;
+    private static final String VALIDATION_ERROR_MSG = "Message validation failed";
     private final Logger log = Logger.getLogger(ValidationHandler.class);
     private final String logPrefix = "LogRequestHandler > ";
     private final int maxBuffers = 100000;
@@ -55,19 +58,22 @@ public class ValidationHandler implements HttpHandler {
             log.info(logPrefix + "validating by message...");
             String reqContent = getRequestMessage(httpServerExchange);
             log.info(logPrefix + "message retrieved");
-            log.info(logPrefix + "message: " + reqContent.substring(0,reqContent.length() > 1000 ? 1000 : reqContent.length()));
+            log.info(logPrefix + "message: " + reqContent.substring(0, reqContent.length() > 1000 ? 1000 : reqContent.length()));
             //log.info(logPrefix + "resource: " + this.getClass().getResource("/xsds/xop.xsd").toExternalForm());
             if (reqContent.length() == 0) {
                 log.error(logPrefix + "no msg found in lwi context");
+                validationOk = false;
             } else {
                 if (wsdlLocation == null) {
                     log.error(logPrefix + "no wsdlLocation filter param defined");
+                    validationOk = false;
                 } else {
                     log.info(logPrefix + "parsing wsdl: " + wsdlLocation);
                     Wsdl wsdl = Wsdl.parse(wsdlLocation); // "file:///d:/work/wsdl-validator/data/GetBillingProfileId_v1.wsdl"
                     log.info(logPrefix + "wsdl parsed");
                     if (wsdl.getBindings() == null || wsdl.getBindings().size() == 0) {
                         log.error(logPrefix + "no bindings found in wsdl");
+                        validationOk = false;
                     } else {
                         String localPart = wsdl.getBindings().get(0).getLocalPart();
                         SoapBuilder builder = wsdl.binding().localPart(localPart).find();
@@ -77,87 +83,86 @@ public class ValidationHandler implements HttpHandler {
                             log.debug(logPrefix + "request is VALID");
                         } catch (SoapValidationException e) {
                             log.debug(logPrefix + "request is NOT VALID. Found " + e.getErrors().size() + "errors: ");
+                            validationOk = false;
                             int errCnt = 1;
                             for (AssertionError err : e.getErrors()) {
                                 log.debug(logPrefix + "request ERROR #" + (errCnt++) + ": " + err.getMessage());
                             }
                         }
-
-                        // TODO 500-as hiba, ha nem valid
                     }
-
                 }
             }
         } else if (validationType == ValidationType.CTX) {
             log.debug(logPrefix + "validating by context...");
-            String reqContent = getRequestMessage(httpServerExchange);
-            Document doc = null;
-            try {
-                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-                doc = dBuilder.parse(new ByteArrayInputStream(reqContent.getBytes())); // TODO encoding?
-            } catch (Exception e) {
-                // not a soap message
-            }
-            String requestId;
-            String correlationId;
-            String userId;
-
-            // 1. soap attribute
-            requestId = LwiLogAttributeUtil.getSoapAttribute(doc, LwiLogAttribute.RequestId);
-            if (requestId != null) { // ha talalt requestId-t, akkor a tobbit is ott varja
-                log.debug("Soap attribute requestId detected");
-                correlationId = LwiLogAttributeUtil.getSoapAttribute(doc, LwiLogAttribute.CorrelationId);
-                userId = LwiLogAttributeUtil.getSoapAttribute(doc, LwiLogAttribute.UserId);
-                validationOk = isValidationOk(requestId, correlationId, userId);
-            } else {
-
-                // 2. tech osb
-                requestId = LwiLogAttributeUtil.getTechOSBAttribute(doc, LwiLogAttribute.RequestId);
-                if (requestId != null) {
-                    log.debug("TechOSB requestId detected");
-                    correlationId = LwiLogAttributeUtil.getTechOSBAttribute(doc, LwiLogAttribute.CorrelationId);
-                    userId = LwiLogAttributeUtil.getTechOSBAttribute(doc, LwiLogAttribute.UserId);
-                    validationOk = isValidationOk(requestId, correlationId, userId);
-                } else {
-
-                    // 3. new osb
-                    requestId = LwiLogAttributeUtil.getNewOSBAttribute(doc, LwiLogAttribute.RequestId);
-                    if (requestId != null) {
-                        log.debug("NewOSB requestId detected");
-                        correlationId = LwiLogAttributeUtil.getNewOSBAttribute(doc, LwiLogAttribute.CorrelationId);
-                        userId = LwiLogAttributeUtil.getNewOSBAttribute(doc, LwiLogAttribute.UserId);
-                        validationOk = isValidationOk(requestId, correlationId, userId);
-                    } else {
-
-                        // 4. http header
-                        // TODO ha nincs msg, ezt akkor is lehet vizsgalni
-                        requestId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.RequestId);
-                        if (requestId != null) {
-                            log.debug("HTTP Header requestId detected");
-                            correlationId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.CorrelationId);
-                            userId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.UserId);
-                            validationOk = isValidationOk(requestId, correlationId, userId);
-                        } else {
-                            validationOk = false;
-                            log.error("No applicable context detected");
-                        }
-                    }
-                }
-            }
+            validationOk = validateByContext(httpServerExchange);
         }
 
         if (validationOk) {
             log.info(logPrefix + "Validation OK.");
+            next.handleRequest(httpServerExchange);
         } else {
             log.error(logPrefix + "Validation FAILED.");
-            // TODO 500
+            httpServerExchange.setStatusCode(VALIDATION_ERROR_CODE);
+            Sender sender = httpServerExchange.getResponseSender();
+            sender.send(String.format(VALIDATION_ERROR_MSG));
         }
 
-        log.debug(logPrefix + "handle complete");
+    }
 
-        next.handleRequest(httpServerExchange);
+    private boolean validateByContext(HttpServerExchange httpServerExchange) {
+        String reqContent = getRequestMessage(httpServerExchange);
+        Document doc = null;
+        try {
+            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+            doc = dBuilder.parse(new ByteArrayInputStream(reqContent.getBytes())); // TODO encoding?
+        } catch (Exception e) {
+            log.error("Not a soap message");
+            return false;
+        }
+        String requestId;
+        String correlationId;
+        String userId;
 
+        // 1. soap attribute
+        requestId = LwiLogAttributeUtil.getSoapAttribute(doc, LwiLogAttribute.RequestId);
+        if (requestId != null) { // ha talalt requestId-t, akkor a tobbit is ott varja
+            log.debug("Soap attribute requestId detected");
+            correlationId = LwiLogAttributeUtil.getSoapAttribute(doc, LwiLogAttribute.CorrelationId);
+            userId = LwiLogAttributeUtil.getSoapAttribute(doc, LwiLogAttribute.UserId);
+            return isValidationOk(requestId, correlationId, userId);
+        }
+
+        // 2. tech osb
+        requestId = LwiLogAttributeUtil.getTechOSBAttribute(doc, LwiLogAttribute.RequestId);
+        if (requestId != null) {
+            log.debug("TechOSB requestId detected");
+            correlationId = LwiLogAttributeUtil.getTechOSBAttribute(doc, LwiLogAttribute.CorrelationId);
+            userId = LwiLogAttributeUtil.getTechOSBAttribute(doc, LwiLogAttribute.UserId);
+            return isValidationOk(requestId, correlationId, userId);
+        }
+
+        // 3. new osb
+        requestId = LwiLogAttributeUtil.getNewOSBAttribute(doc, LwiLogAttribute.RequestId);
+        if (requestId != null) {
+            log.debug("NewOSB requestId detected");
+            correlationId = LwiLogAttributeUtil.getNewOSBAttribute(doc, LwiLogAttribute.CorrelationId);
+            userId = LwiLogAttributeUtil.getNewOSBAttribute(doc, LwiLogAttribute.UserId);
+            return isValidationOk(requestId, correlationId, userId);
+        }
+
+        // 4. http header
+        // TODO ha nincs msg, ezt akkor is lehet vizsgalni
+        requestId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.RequestId);
+        if (requestId != null) {
+            log.debug("HTTP Header requestId detected");
+            correlationId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.CorrelationId);
+            userId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.UserId);
+            return isValidationOk(requestId, correlationId, userId);
+        } else {
+            log.error("No applicable context detected");
+            return false;
+        }
     }
 
     private boolean isValidationOk(String requestId, String correlationId, String userId) {
@@ -165,6 +170,8 @@ public class ValidationHandler implements HttpHandler {
         if (correlationId == null || userId == null) {
             validationOk = false;
             log.error("Attribute validation failed! requestId=" + requestId + ", correlationId=" + correlationId + ", userId=" + userId);
+        } else {
+            log.info("Attribute validation OK requestId=" + requestId + ", correlationId=" + correlationId + ", userId=" + userId);
         }
         return validationOk;
     }

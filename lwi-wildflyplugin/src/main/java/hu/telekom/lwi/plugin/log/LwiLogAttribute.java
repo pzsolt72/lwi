@@ -22,8 +22,8 @@ public enum LwiLogAttribute {
 	}
 	
 	public String getSoapAttribute() {
-		return "//*[@RequestId]/@RequestId";
-		//return "//" + name() + "/text()";
+		//return "//*[@RequestId]/@RequestId";
+		return "//@" + name();
 	}
 
 	public String getNewOSBAttribute() {
