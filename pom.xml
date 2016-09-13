@@ -5,6 +5,7 @@
   <artifactId>lwi</artifactId>
   <packaging>pom</packaging>
   <version>1.0-SNAPSHOT</version>
+
   <name>Lightweight Integration</name>
 
   
