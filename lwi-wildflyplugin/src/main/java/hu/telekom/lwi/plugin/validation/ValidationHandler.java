@@ -120,7 +120,7 @@ public class ValidationHandler implements HttpHandler {
                         validationOk = false;
                         int errCnt = 1;
                         for (AssertionError err : e.getErrors()) {
-                            failReason += "#" + (errCnt++) + ": " + err.getMessage();
+                            failReason += "\n#" + (errCnt++) + ": " + err.getMessage();
                         }
                     }
                 }
@@ -308,11 +308,12 @@ public class ValidationHandler implements HttpHandler {
     }
 
     private static String createSoapFault(ValidationType validationType, String msg) {
-        String template = "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:xsi=\"http://www.w3.org/1999/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/1999/XMLSchema\">\n" +
+        String template = "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
                 "  <SOAP-ENV:Body>\n" +
                 "      <SOAP-ENV:Fault>\n" +
-                "         <faultcode xsi:type=\"xsd:string\">%s</faultcode>\n" +
-                "         <faultstring xsi:type=\"xsd:string\">\n" +
+                "         <faultcode>SOAP-ENV:Client</faultcode>\n" +
+                "         <faultstring>\n" +
+                "          %s\n" +
                 "          %s\n" +
                 "         </faultstring>\n" +
                 "      </SOAP-ENV:Fault>\n" +
