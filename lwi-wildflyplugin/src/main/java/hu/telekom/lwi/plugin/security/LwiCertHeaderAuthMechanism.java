@@ -35,7 +35,7 @@ public class LwiCertHeaderAuthMechanism implements AuthenticationMechanism {
 	public AuthenticationMechanismOutcome authenticate(HttpServerExchange exchange, SecurityContext securityContext) {
 
 		String sslCN = exchange.getRequestHeaders().get(SSL_USERNAME_HEADER).getFirst();
-		if (sslCN != null) {
+		if (sslCN != null && !"".equals(sslCN)) {
 
 			IdentityManager idm = securityContext.getIdentityManager();
 
