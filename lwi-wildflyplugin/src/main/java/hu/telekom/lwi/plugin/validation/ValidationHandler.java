@@ -35,7 +35,8 @@ public class ValidationHandler implements HttpHandler {
     private ValidationType validationType = ValidationType.MSG;
     private String wsdlLocation = null;
     private HttpHandler next = null;
-    String msg = null;
+    private String msg = null;
+    private String failReason = null;
 
 
     public ValidationHandler(HttpHandler next) {
@@ -54,47 +55,21 @@ public class ValidationHandler implements HttpHandler {
     public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
         log.info(logPrefix + "handle start...");
         boolean validationOk = true;
-        if (validationType == ValidationType.MSG) {
-            log.info(logPrefix + "validating by message...");
-            String reqContent = getRequestMessage(httpServerExchange);
-            log.info(logPrefix + "message retrieved");
-            log.info(logPrefix + "message: " + reqContent.substring(0, reqContent.length() > 1000 ? 1000 : reqContent.length()));
-            //log.info(logPrefix + "resource: " + this.getClass().getResource("/xsds/xop.xsd").toExternalForm());
-            if (reqContent.length() == 0) {
-                log.error(logPrefix + "no msg found in lwi context");
-                validationOk = false;
-            } else {
-                if (wsdlLocation == null) {
-                    log.error(logPrefix + "no wsdlLocation filter param defined");
-                    validationOk = false;
-                } else {
-                    log.info(logPrefix + "parsing wsdl: " + wsdlLocation);
-                    Wsdl wsdl = Wsdl.parse(wsdlLocation); // "file:///d:/work/wsdl-validator/data/GetBillingProfileId_v1.wsdl"
-                    log.info(logPrefix + "wsdl parsed");
-                    if (wsdl.getBindings() == null || wsdl.getBindings().size() == 0) {
-                        log.error(logPrefix + "no bindings found in wsdl");
-                        validationOk = false;
-                    } else {
-                        String localPart = wsdl.getBindings().get(0).getLocalPart();
-                        SoapBuilder builder = wsdl.binding().localPart(localPart).find();
-                        SoapOperation op = builder.getOperations().get(0);
-                        try {
-                            builder.validateInputMessage(op, reqContent);
-                            log.debug(logPrefix + "request is VALID");
-                        } catch (SoapValidationException e) {
-                            log.debug(logPrefix + "request is NOT VALID. Found " + e.getErrors().size() + "errors: ");
-                            validationOk = false;
-                            int errCnt = 1;
-                            for (AssertionError err : e.getErrors()) {
-                                log.debug(logPrefix + "request ERROR #" + (errCnt++) + ": " + err.getMessage());
-                            }
-                        }
-                    }
-                }
+
+        try {
+            if (validationType == ValidationType.MSG) {
+                log.info(logPrefix + "validating by message...");
+                validationOk = validateByMsg(httpServerExchange);
+            } else if (validationType == ValidationType.CTX) {
+                log.info(logPrefix + "validating by context...");
+                validationOk = validateByContext(httpServerExchange);
+            } else if (validationType == ValidationType.NO) {
+                log.info(logPrefix + "skipping validation");
             }
-        } else if (validationType == ValidationType.CTX) {
-            log.debug(logPrefix + "validating by context...");
-            validationOk = validateByContext(httpServerExchange);
+        } catch (Exception e) {
+            validationOk = false;
+            failReason = "Internal error: " + e.getMessage();
+            log.error(logPrefix + failReason, e);
         }
 
         if (validationOk) {
@@ -104,20 +79,66 @@ public class ValidationHandler implements HttpHandler {
             log.error(logPrefix + "Validation FAILED.");
             httpServerExchange.setStatusCode(VALIDATION_ERROR_CODE);
             Sender sender = httpServerExchange.getResponseSender();
-            sender.send(String.format(VALIDATION_ERROR_MSG));
+            sender.send(createSoapFault(validationType, failReason));
         }
 
     }
 
+    private boolean validateByMsg(HttpServerExchange httpServerExchange) {
+        boolean validationOk = true;
+        String reqContent = getRequestMessage(httpServerExchange);
+        log.info(logPrefix + "message retrieved");
+        log.info(logPrefix + "message: " + reqContent.substring(0, reqContent.length() > 1000 ? 1000 : reqContent.length()));
+        //log.info(logPrefix + "resource: " + this.getClass().getResource("/xsds/xop.xsd").toExternalForm());
+        if (reqContent.length() == 0) {
+            failReason = "no msg found in lwi context";
+            log.error(logPrefix + failReason);
+            validationOk = false;
+        } else {
+            if (wsdlLocation == null) {
+                failReason = "no wsdlLocation filter param defined";
+                log.error(logPrefix + failReason);
+                validationOk = false;
+            } else {
+                log.info(logPrefix + "parsing wsdl: " + wsdlLocation);
+                Wsdl wsdl = Wsdl.parse(wsdlLocation); // "file:///d:/work/wsdl-validator/data/GetBillingProfileId_v1.wsdl"
+                log.info(logPrefix + "wsdl parsed");
+                if (wsdl.getBindings() == null || wsdl.getBindings().size() == 0) {
+                    failReason = "no bindings found in wsdl";
+                    log.error(logPrefix + failReason);
+                    validationOk = false;
+                } else {
+                    String localPart = wsdl.getBindings().get(0).getLocalPart();
+                    SoapBuilder builder = wsdl.binding().localPart(localPart).find();
+                    SoapOperation op = builder.getOperations().get(0);
+                    try {
+                        builder.validateInputMessage(op, reqContent);
+                        log.debug(logPrefix + "request is VALID");
+                    } catch (SoapValidationException e) {
+                        failReason = "request is NOT VALID. Found " + e.getErrors().size() + "errors.";
+                        log.error(logPrefix + failReason);
+                        validationOk = false;
+                        int errCnt = 1;
+                        for (AssertionError err : e.getErrors()) {
+                            failReason += "\n#" + (errCnt++) + ": " + err.getMessage();
+                        }
+                    }
+                }
+            }
+        }
+        return validationOk;
+    }
+
     private boolean validateByContext(HttpServerExchange httpServerExchange) {
         String reqContent = getRequestMessage(httpServerExchange);
-        Document doc = null;
+        Document doc;
         try {
             DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
             doc = dBuilder.parse(new ByteArrayInputStream(reqContent.getBytes())); // TODO encoding?
         } catch (Exception e) {
-            log.error("Not a soap message");
+            failReason = "Not a soap message";
+            log.error(logPrefix + failReason);
             return false;
         }
         String requestId;
@@ -160,7 +181,8 @@ public class ValidationHandler implements HttpHandler {
             userId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.UserId);
             return isValidationOk(requestId, correlationId, userId);
         } else {
-            log.error("No applicable context detected");
+            failReason = "No applicable context detected";
+            log.error(logPrefix + failReason);
             return false;
         }
     }
@@ -169,9 +191,10 @@ public class ValidationHandler implements HttpHandler {
         boolean validationOk = true;
         if (correlationId == null || userId == null) {
             validationOk = false;
-            log.error("Attribute validation failed! requestId=" + requestId + ", correlationId=" + correlationId + ", userId=" + userId);
+            failReason = "Attribute validation failed! requestId=" + requestId + ", correlationId=" + correlationId + ", userId=" + userId;
+            log.error(logPrefix + failReason);
         } else {
-            log.info("Attribute validation OK requestId=" + requestId + ", correlationId=" + correlationId + ", userId=" + userId);
+            log.info(logPrefix + "Attribute validation OK requestId=" + requestId + ", correlationId=" + correlationId + ", userId=" + userId);
         }
         return validationOk;
     }
@@ -277,9 +300,25 @@ public class ValidationHandler implements HttpHandler {
                 Connectors.resetRequestChannel(exchange);
 
             } catch (IOException e) {
-                log.error(logPrefix, "Unable to get request message", e);
+                failReason = "Internal error. Unable to get post request message";
+                log.error(logPrefix, failReason, e);
             }
         }
         return msg;
+    }
+
+    private static String createSoapFault(ValidationType validationType, String msg) {
+        String template = "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
+                "  <SOAP-ENV:Body>\n" +
+                "      <SOAP-ENV:Fault>\n" +
+                "         <faultcode>SOAP-ENV:Client</faultcode>\n" +
+                "         <faultstring>\n" +
+                "          %s\n" +
+                "          %s\n" +
+                "         </faultstring>\n" +
+                "      </SOAP-ENV:Fault>\n" +
+                "   </SOAP-ENV:Body>\n" +
+                "</SOAP-ENV:Envelope>";
+        return String.format(template, validationType.toString() + " validation FAILED", msg);
     }
 }
