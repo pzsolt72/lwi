@@ -30309,7 +30309,7 @@ When one Single Trouble Ticket is used for consolidation of multiple order failu
          <in>LWI</in>\r
       </lwit:helloLwi>\r
    </soapenv:Body>\r
-</soapenv:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://telekom.hu/LwiTestService/helloLwi"/><con:wsrmConfig version="1.2"/></con:call></con:operation></con:interface><con:testSuite id="3e100d6c-4350-4a1e-a5e6-1166195a1a6f" name="CNR getMsisdn TestSuite"><con:settings/><con:runType>SEQUENTIAL</con:runType><con:testCase id="74e5b467-6704-48ae-b4ee-30adfa97b95c" failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="GetMsisdnV4 TestCase" searchProperties="true"><con:settings/><con:testStep type="request" id="615d2e9f-77da-400c-94ec-d4704e597a19" name="GetMsisdn"><con:settings/><con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:interface>CNR_getMsisdn</con:interface><con:operation>GetMsisdnV4</con:operation><con:request name="GetMsisdn" id="fec44989-5f94-43b1-84a4-0619f39ef538"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8071//lwi/cnr/getMsisdn</con:endpoint><con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:open="http://www.openuri.org/" xmlns:num="http://cnr.interfaceobject.ugyfelszolgfoly.bpm.mt.hu/NumberInterface" xmlns:com="http://mt.hu/common_v1">
+</soapenv:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://telekom.hu/LwiTestService/helloLwi"/><con:wsrmConfig version="1.2"/></con:call></con:operation></con:interface><con:testSuite id="3e100d6c-4350-4a1e-a5e6-1166195a1a6f" name="CNR getMsisdn TestSuite"><con:settings/><con:runType>SEQUENTIAL</con:runType><con:testCase id="74e5b467-6704-48ae-b4ee-30adfa97b95c" failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="GetMsisdnV4 TestCase" searchProperties="true"><con:settings/><con:testStep type="request" id="615d2e9f-77da-400c-94ec-d4704e597a19" name="GetMsisdn"><con:settings/><con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:interface>CNR_getMsisdn</con:interface><con:operation>GetMsisdnV4</con:operation><con:request name="GetMsisdn" id="fec44989-5f94-43b1-84a4-0619f39ef538"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>https://localhost:444//lwi/cnr/getMsisdn</con:endpoint><con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:open="http://www.openuri.org/" xmlns:num="http://cnr.interfaceobject.ugyfelszolgfoly.bpm.mt.hu/NumberInterface" xmlns:com="http://mt.hu/common_v1">
    <soapenv:Header/>
    <soapenv:Body>
       <open:getMsisdn_V4>
@@ -30319,9 +30319,9 @@ When one Single Trouble Ticket is used for consolidation of multiple order failu
                <com:UserId>pzs</com:UserId>
                <com:TimeLeft>20000</com:TimeLeft>
                <com:Sender>soapui</com:Sender>
-               <!--
+
                <com:CorrelationId>123</com:CorrelationId>
--->
+
             </com:MessageContext>
             <num:msisdn>306406781</num:msisdn>
          </num:getMsisdn_V4Request>
