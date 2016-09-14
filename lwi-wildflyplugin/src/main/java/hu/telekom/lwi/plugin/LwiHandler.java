@@ -37,6 +37,10 @@ import io.undertow.util.HttpString;
  */
 public class LwiHandler implements HttpHandler {
 
+	
+	private static final int PROVIDER_POS_ON_URI = 2;
+    private static final int SERVICE_POS_ON_URI = 3;
+			
 	private static String MUTEX = "MUTEX";
 	private static Map<String, LoadBalancingProxyClient> proxyMap = new HashMap<>();
 
@@ -179,6 +183,30 @@ public class LwiHandler implements HttpHandler {
 			return "N/A";
 		}
 	}
+	
+	public static String getProvider(HttpServerExchange exchange) {
+		String retval = "NOTAVAILABLE";
+		
+		String[] requestPath = exchange.getRequestPath().split("/");
+		
+		try {
+			retval = requestPath[PROVIDER_POS_ON_URI];
+		} catch (Exception e) {		}
+		
+		return retval;
+	}
+	
+	public static String getCalledService(HttpServerExchange exchange) {
+		String retval = "NOTAVAILABLE";
+		
+		String[] requestPath = exchange.getRequestPath().split("/");
+		
+		try {
+			retval = requestPath[SERVICE_POS_ON_URI];
+		} catch (Exception e) {		}
+		
+		return retval;
+	}	
 
 	public HttpHandler getNext() {
 		return next;
