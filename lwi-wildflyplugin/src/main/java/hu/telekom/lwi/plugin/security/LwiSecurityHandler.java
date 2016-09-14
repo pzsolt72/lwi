@@ -9,6 +9,7 @@ import java.util.ResourceBundle;
 import java.util.Set;
 
 import org.jboss.logging.Logger;
+import org.wildfly.extension.undertow.security.JAASIdentityManagerImpl;
 
 import hu.telekom.lwi.plugin.LwiHandler;
 import hu.telekom.lwi.plugin.util.LwiResourceBundleUtil;
@@ -31,6 +32,9 @@ import io.undertow.server.HttpServerExchange;
 public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 	
 	public static final String PROVIDER_SERVICE_SEPARATOR = "/";
+
+	
+
 	private static final Logger log = Logger.getLogger(LwiSecurityHandler.class);
 	private static final String REALM = "ApplicationRealm";
 	private static ResourceBundle applicationUsers = LwiResourceBundleUtil.getJbossConfig("application-users.properties");
@@ -40,9 +44,10 @@ public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 	private AuthenticationConstraintHandler constraintHandler;
 	private AuthenticationMechanismsHandler mechanismsHandler;
 	private AuthenticationCallHandler authenticationCallHandler;
-	String lwiRequestId;
+	private String lwiRequestId;
 	private String provider;
 	private String calledService;
+	private boolean isIdentityAssertion = false;
 	
 	public LwiSecurityHandler(HttpHandler next) {
 		List<AuthenticationMechanism> mechanisms = new ArrayList<AuthenticationMechanism>();
@@ -51,6 +56,8 @@ public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 //		mechanisms.add(new DigestAuthenticationMechanism(REALM, REALM, "DIGEST"));
 		mechanisms.add(new ClientCertAuthenticationMechanism());
 
+		mechanisms.add(new LwiCertHeaderAuthMechanism());
+		
 		authenticationCallHandler = new AuthenticationCallHandler(next);
 		mechanismsHandler = new AuthenticationMechanismsHandler(authenticationCallHandler, mechanisms);
 		constraintHandler = new AuthenticationConstraintHandler(mechanismsHandler);
@@ -59,6 +66,8 @@ public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 	
 	@Override
 	public void handleRequest(HttpServerExchange exchange) throws Exception {
+		
+		
 		
 		lwiRequestId = LwiHandler.getLwiRequestId(exchange);
 		
@@ -86,6 +95,8 @@ public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 				if (credential instanceof PasswordCredential) {
 					String password = new String(((PasswordCredential) credential).getPassword());
 					authenticated = LwiSecurityUtil.checkPassword(userId+":"+REALM+":"+password, applicationUsers.getString(userId));
+				} else if ( credential instanceof LwiCertHeaderAuthMechanism.LwiCertHeaderCredential ) {
+					authenticated = (applicationUsers.getString(userId) != null);
 				}
 				boolean authorized = false;
 				if (authenticated) {
