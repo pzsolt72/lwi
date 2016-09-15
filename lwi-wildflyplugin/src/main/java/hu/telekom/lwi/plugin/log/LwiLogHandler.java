@@ -56,8 +56,10 @@ public class LwiLogHandler implements HttpHandler {
 		}
 
 		boolean infoFromHeaders = true;
+		
+		long startTimeInMillis = System.currentTimeMillis();
 
-		StringBuilder requestLogMessage = new StringBuilder(String.format(REQUEST_LOG_MAIN, lwiRequestId, getTimestamp(), caller, provider, operation));
+		StringBuilder requestLogMessage = new StringBuilder(String.format(REQUEST_LOG_MAIN, lwiRequestId, getTimestamp(startTimeInMillis), caller, provider, operation));
 		StringBuilder responseLogMessage = new StringBuilder(String.format(RESPONSE_LOG_MAIN, lwiRequestId, "%s", caller, provider, operation));
 		
 		if (logLevel != LwiLogLevel.MIN) {
@@ -78,7 +80,7 @@ public class LwiLogHandler implements HttpHandler {
 		final LwiConduitWrapper conduitHandler;
 		
 		if (logLevel == LwiLogLevel.FULL || !infoFromHeaders) {
-			conduitHandler = new LwiConduitWrapper(messageLog, logLevel, requestLogMessage.toString(), responseLogMessage.toString(), !infoFromHeaders);
+			conduitHandler = new LwiConduitWrapper(messageLog, logLevel, requestLogMessage.toString(), responseLogMessage.toString(), !infoFromHeaders, startTimeInMillis);
 			
 			exchange.addRequestWrapper(conduitHandler.getRequestConduit());
 			exchange.addResponseWrapper(conduitHandler.getResponseConduit());
@@ -112,10 +114,14 @@ public class LwiLogHandler implements HttpHandler {
 	public void setLogLevel(String logLevel) {
 		this.logLevel = LwiLogLevel.valueOf(logLevel);
 	}
-	
+
 	public static String getTimestamp() {
+		return getTimestamp(System.currentTimeMillis());
+	}
+
+	public static String getTimestamp(long timeInMillis) {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
-		return sdf.format(new Date());
+		return sdf.format(new Date(timeInMillis));
 	}
 
 }
