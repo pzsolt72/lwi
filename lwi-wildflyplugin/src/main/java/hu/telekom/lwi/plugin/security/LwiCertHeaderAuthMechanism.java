@@ -24,6 +24,7 @@ import io.undertow.security.idm.IdentityManager;
 import io.undertow.security.idm.PasswordCredential;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.FlexBase64;
+import io.undertow.util.HeaderValues;
 import io.undertow.util.Headers;
 
 public class LwiCertHeaderAuthMechanism implements AuthenticationMechanism {
@@ -34,7 +35,12 @@ public class LwiCertHeaderAuthMechanism implements AuthenticationMechanism {
 	@Override
 	public AuthenticationMechanismOutcome authenticate(HttpServerExchange exchange, SecurityContext securityContext) {
 
-		String sslCN = exchange.getRequestHeaders().get(SSL_USERNAME_HEADER).getFirst();
+		HeaderValues headers = exchange.getRequestHeaders().get(SSL_USERNAME_HEADER);
+		
+		String sslCN = null;
+		
+		if ( headers != null ) sslCN = headers.getFirst();
+					
 		if (sslCN != null && !"".equals(sslCN)) {
 
 			IdentityManager idm = securityContext.getIdentityManager();
