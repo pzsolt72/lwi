@@ -100,7 +100,7 @@ public class LwiConduitWrapper {
 		long call = getCallInMillis(responseFinished);
 		long service = getServiceCallInMillis();
 		long overhead = call - service;
-		return String.format("[call: %dms, servicecall: %dms, overhead: %dms ]", call, service, overhead);
+		return String.format("[call: %dms, servicecall: %dms, overhead: %dms]", call, service, overhead);
 	}
 	
 	public LwiConduit<StreamSourceConduit, LwiRequestConduit> getRequestConduit() {
@@ -154,11 +154,9 @@ public class LwiConduitWrapper {
 						messageLog.info(String.format("%s[REQUEST (partial request part - %s) > %s]", requestLog, (partial ? partCounter : "last"), LwiLogAttributeUtil.cleanseMessage(requestBuffer.toString())));
 					} else {
 						messageLog.info(String.format("%s[REQUEST > %s]", requestLog, LwiLogAttributeUtil.cleanseMessage(requestBuffer.toString())));
-						processingRequestFinished = System.currentTimeMillis();
 					}
 				} else if (!partial) {
 					messageLog.info(requestLog);
-					processingRequestFinished = System.currentTimeMillis();
 				}
 				requestBuffer.setLength(0);
 				logAvailable = false;
@@ -168,6 +166,10 @@ public class LwiConduitWrapper {
 		@Override
 		public int read(ByteBuffer dst) throws IOException {
 
+			if (processingRequestFinished <= 0) {
+				processingRequestFinished = System.currentTimeMillis();
+			}
+			
 			int pos = dst.position();
 			int res = super.read(dst);
 
