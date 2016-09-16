@@ -70,9 +70,5 @@ public class LwiCertHeaderAuthMechanism implements AuthenticationMechanism {
         return new ChallengeResult(true, UNAUTHORIZED);	}
 
 	
-	public class LwiCertHeaderCredential implements Credential {
-		
-		
-		
-	}
+	
 }

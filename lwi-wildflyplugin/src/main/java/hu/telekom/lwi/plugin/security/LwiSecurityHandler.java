@@ -95,7 +95,7 @@ public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 				if (credential instanceof PasswordCredential) {
 					String password = new String(((PasswordCredential) credential).getPassword());
 					authenticated = LwiSecurityUtil.checkPassword(userId+":"+REALM+":"+password, applicationUsers.getString(userId));
-				} else if ( credential instanceof LwiCertHeaderAuthMechanism.LwiCertHeaderCredential ) {
+				} else if ( credential instanceof LwiCertHeaderCredential ) {
 					authenticated = (applicationUsers.getString(userId) != null);
 				}
 				boolean authorized = false;
