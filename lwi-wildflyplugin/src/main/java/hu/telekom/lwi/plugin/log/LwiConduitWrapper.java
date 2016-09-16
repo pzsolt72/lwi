@@ -32,7 +32,9 @@ public class LwiConduitWrapper {
 	private LwiConduit<StreamSourceConduit, LwiRequestConduit> requestConduit;
 	private LwiConduit<StreamSinkConduit, LwiResponseConduit> responseConduit;
 	
-	public LwiConduitWrapper(Logger messageLog, LwiLogLevel logLevel, String requestLogMessage, String responseLogMessage, boolean contextFromMessage) {
+	private long requestStarted;
+	
+	public LwiConduitWrapper(Logger messageLog, LwiLogLevel logLevel, String requestLogMessage, String responseLogMessage, boolean contextFromMessage, long requestStarted) {
 		this.messageLog = messageLog;
 		this.logLevel = logLevel;
 		this.requestConduit = new LwiConduit<StreamSourceConduit, LwiRequestConduit>() {
@@ -65,6 +67,8 @@ public class LwiConduitWrapper {
 				return responseConduit;
 			}
 		};
+		
+		this.requestStarted = requestStarted;
 	}
 
 	public void log(boolean partial) {
@@ -77,6 +81,26 @@ public class LwiConduitWrapper {
 		if (!onlyRequest) {
 			getResponseConduit().getConduit().logResponse(partial);
 		}
+	}
+	
+	public long getCallInMillis(long responseFinished) {
+		return responseFinished - requestStarted;
+	}
+	
+	public long getServiceCallInMillis() {
+		long serviceStarted = getRequestConduit().getConduit().getProcessingRequestFinishedInMillis();
+		long serviceFinished = getResponseConduit().getConduit().getProcessingResponseStartedInMillis();
+		if (serviceStarted > 0 && serviceFinished > 0) {
+			return serviceFinished - serviceStarted;
+		} 
+		return 0;
+	}
+
+	public String getProcessTimes(long responseFinished) {
+		long call = getCallInMillis(responseFinished);
+		long service = getServiceCallInMillis();
+		long overhead = call - service;
+		return String.format("[call: %dms, servicecall: %dms, overhead: %dms ]", call, service, overhead);
 	}
 	
 	public LwiConduit<StreamSourceConduit, LwiRequestConduit> getRequestConduit() {
@@ -99,6 +123,8 @@ public class LwiConduitWrapper {
 		private int partCounter = 0;
 		private boolean contextFromMessage;
 		
+		private long processingRequestFinished = 0;
+		
 		private boolean logAvailable = false;
 		
 		protected LwiRequestConduit(StreamSourceConduit next, String requestLog, boolean contextFromMessage) {
@@ -108,6 +134,10 @@ public class LwiConduitWrapper {
 			this.contextFromMessage = contextFromMessage;
 		}
 
+		public long getProcessingRequestFinishedInMillis() {
+			return processingRequestFinished;
+		}
+		
 		public void logRequest(boolean partial) {
 			if (logAvailable) {
 				if (contextFromMessage) {
@@ -124,9 +154,11 @@ public class LwiConduitWrapper {
 						messageLog.info(String.format("%s[REQUEST (partial request part - %s) > %s]", requestLog, (partial ? partCounter : "last"), LwiLogAttributeUtil.cleanseMessage(requestBuffer.toString())));
 					} else {
 						messageLog.info(String.format("%s[REQUEST > %s]", requestLog, LwiLogAttributeUtil.cleanseMessage(requestBuffer.toString())));
+						processingRequestFinished = System.currentTimeMillis();
 					}
 				} else if (!partial) {
 					messageLog.info(requestLog);
+					processingRequestFinished = System.currentTimeMillis();
 				}
 				requestBuffer.setLength(0);
 				logAvailable = false;
@@ -184,6 +216,8 @@ public class LwiConduitWrapper {
 		private StringBuffer responseBuffer;
 		private int partCounter = 0;
 		
+		private long processingResponseStarted = 0;
+		
 		private boolean logAvailable = false;
 
 		protected LwiResponseConduit(StreamSinkConduit next, String responseLog) {
@@ -192,16 +226,22 @@ public class LwiConduitWrapper {
 			this.responseBuffer = new StringBuffer();
 		}
 
+		public long getProcessingResponseStartedInMillis() {
+			return processingResponseStarted;
+		}
+		
 		public void logResponse(boolean partial) {
 			if (logAvailable) {
 				if (logLevel == LwiLogLevel.FULL) {
 					if (partCounter++ > 0 || partial) {
 						messageLog.info(String.format("%s[RESPONSE (partial response part - %s) > %s]", String.format(responseLog, LwiLogHandler.getTimestamp()), (partial ? partCounter : "last"), LwiLogAttributeUtil.cleanseMessage(responseBuffer.toString())));
 					} else {
-						messageLog.info(String.format("%s[RESPONSE > %s]", String.format(responseLog, LwiLogHandler.getTimestamp()), LwiLogAttributeUtil.cleanseMessage(responseBuffer.toString())));
+						long responseFinished = System.currentTimeMillis();
+						messageLog.info(String.format("%s%s[RESPONSE > %s]", String.format(responseLog, LwiLogHandler.getTimestamp(responseFinished)), getProcessTimes(responseFinished), LwiLogAttributeUtil.cleanseMessage(responseBuffer.toString())));
 					}
 				} else if (!partial) {
-					messageLog.info(String.format(responseLog, LwiLogHandler.getTimestamp()));
+					long responseFinished = System.currentTimeMillis();
+					messageLog.info(String.format(responseLog, LwiLogHandler.getTimestamp(responseFinished)) + getProcessTimes(responseFinished));
 				}
 				logAvailable = false;
 				responseBuffer.setLength(0);
@@ -211,6 +251,10 @@ public class LwiConduitWrapper {
 		@Override
 		public int write(ByteBuffer src) throws IOException {
 
+			if (processingResponseStarted <= 0) {
+				processingResponseStarted = System.currentTimeMillis();
+			}
+			
 			int pos = src.position();
 			int res = super.write(src);
 			if (res > 0) {
