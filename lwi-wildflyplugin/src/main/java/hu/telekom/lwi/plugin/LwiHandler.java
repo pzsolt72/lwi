@@ -1,6 +1,5 @@
 package hu.telekom.lwi.plugin;
 
-import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -10,17 +9,14 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import hu.telekom.lwi.plugin.validation.ValidationHandler;
-import hu.telekom.lwi.plugin.validation.ValidationType;
-
 import org.jboss.logging.Logger;
 
 import hu.telekom.lwi.plugin.limit.LwiRequestLimitExceededHandler;
 import hu.telekom.lwi.plugin.log.LwiLogHandler;
 import hu.telekom.lwi.plugin.log.LwiLogLevel;
 import hu.telekom.lwi.plugin.security.LwiSecurityHandler;
-import io.undertow.io.Sender;
-import io.undertow.server.DefaultResponseListener;
+import hu.telekom.lwi.plugin.validation.ValidationHandler;
+import hu.telekom.lwi.plugin.validation.ValidationType;
 import io.undertow.server.HandlerWrapper;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
@@ -28,10 +24,7 @@ import io.undertow.server.handlers.RequestLimit;
 import io.undertow.server.handlers.ResponseCodeHandler;
 import io.undertow.server.handlers.builder.HandlerBuilder;
 import io.undertow.server.handlers.proxy.LoadBalancingProxyClient;
-import io.undertow.server.handlers.proxy.ProxyConnectionPool;
 import io.undertow.server.handlers.proxy.ProxyHandler;
-import io.undertow.server.handlers.proxy.SimpleProxyClientProvider;
-import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
 
 /**
