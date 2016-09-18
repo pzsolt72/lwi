@@ -86,7 +86,7 @@ public class ValidationHandler implements HttpHandler {
         String reqContent = getRequestMessage(httpServerExchange);
         log.info(logPrefix + "message retrieved");
         log.info(logPrefix + "message: " + reqContent.substring(0, reqContent.length() > 1000 ? 1000 : reqContent.length()));
-        //log.info(logPrefix + "resource: " + this.getClass().getResource("/xsds/xop.xsd").toExternalForm());
+        log.info(logPrefix + "resource: " + Wsdl.class.getResource("/xsds/xop.xsd"));
         if (reqContent.length() == 0) {
             failReason = "no msg found in lwi context";
             log.error(logPrefix + failReason);
@@ -98,7 +98,7 @@ public class ValidationHandler implements HttpHandler {
                 validationOk = false;
             } else {
                 log.info(logPrefix + "parsing wsdl: " + wsdlLocation);
-                Wsdl wsdl = Wsdl.parse(wsdlLocation); // "file:///d:/work/wsdl-validator/data/GetBillingProfileId_v1.wsdl"
+                Wsdl wsdl = Wsdl.parse(wsdlLocation);
                 log.info(logPrefix + "wsdl parsed");
                 if (wsdl.getBindings() == null || wsdl.getBindings().size() == 0) {
                     failReason = "no bindings found in wsdl";
