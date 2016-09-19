@@ -49,4 +49,16 @@ public class LwiRequestData {
 		return String.format(LOG_FORMAT, requestId!=null?requestId:LwiLogAttribute.EMPTY, correlationId!=null?correlationId:LwiLogAttribute.EMPTY, userId!=null?userId:LwiLogAttribute.EMPTY);
 	}
 
+	public String getRequestId() {
+		return requestId;
+	}
+
+	public String getCorrelationId() {
+		return correlationId;
+	}
+
+	public String getUserId() {
+		return userId;
+	}
+
 }

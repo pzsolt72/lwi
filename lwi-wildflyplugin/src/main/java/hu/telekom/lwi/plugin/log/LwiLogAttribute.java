@@ -2,9 +2,9 @@ package hu.telekom.lwi.plugin.log;
 
 public enum LwiLogAttribute {
 
-	RequestId("MessageContext/RequestId", "eiMessageContext/requestId"),
-	CorrelationId("MessageContext/CorrelationId", "eiMessageContext/correlationId"),
-	UserId("MessageContext/UserId", "eiMessageContext/sender");
+	RequestId("/MessageContext/RequestId", "/eiMessageContext/requestId"),
+	CorrelationId("/MessageContext/CorrelationId", "/eiMessageContext/correlationId"),
+	UserId("/MessageContext/UserId", "/eiMessageContext/sender");
 	
 	public static final String HTTP_HEADER = "X-MT-"; 
 	
@@ -20,17 +20,9 @@ public enum LwiLogAttribute {
 	public String getHttpHeaderAttribute() {
 		return HTTP_HEADER + name();
 	}
+
+	public boolean isKeyXmlElement(String qName) {
+		return qName.endsWith(newOsbField) || qName.endsWith(techOsbField);
+	}
 	
-	public String getSoapAttribute() {
-		//return "//*[@RequestId]/@RequestId";
-		return "//@" + name();
-	}
-
-	public String getNewOSBAttribute() {
-		return "//" + newOsbField + "/text()";
-	}
-
-	public String getTechOSBAttribute() {
-		return "//" + techOsbField + "/text()";
-	}
 }

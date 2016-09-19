@@ -81,7 +81,7 @@ public class LwiCall {
 	public String toDurationLog(long requestFinished, long responseStarted, long responseFinished) {
 		long call = responseFinished - requestStarted;
 		long service = responseStarted - requestFinished;
-		long overhead = call - service;
+		long overhead = call - (service > 0 ? service : 0);
 		return String.format(DURATION_LOG_FORMAT, call>0?Long.toString(call):LwiLogAttribute.EMPTY, service>0?Long.toString(service):LwiLogAttribute.EMPTY, overhead>0?Long.toString(overhead):LwiLogAttribute.EMPTY);
 	}
 

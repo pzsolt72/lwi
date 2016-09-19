@@ -1,6 +1,19 @@
 package hu.telekom.lwi.plugin.validation;
 
-import hu.telekom.lwi.plugin.log.LwiLogAttribute;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Stack;
+
+import org.jboss.logging.Logger;
+import org.reficio.ws.SoapValidationException;
+import org.reficio.ws.builder.SoapBuilder;
+import org.reficio.ws.builder.SoapOperation;
+import org.reficio.ws.builder.core.Wsdl;
+import org.xnio.ChannelListener;
+import org.xnio.IoUtils;
+import org.xnio.channels.StreamSourceChannel;
+
+import hu.telekom.lwi.plugin.log.LwiRequestData;
 import hu.telekom.lwi.plugin.util.LwiLogAttributeUtil;
 import io.undertow.UndertowLogger;
 import io.undertow.connector.PooledByteBuffer;
@@ -8,22 +21,6 @@ import io.undertow.io.Sender;
 import io.undertow.server.Connectors;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
-import org.jboss.logging.Logger;
-import org.reficio.ws.SoapValidationException;
-import org.reficio.ws.builder.SoapBuilder;
-import org.reficio.ws.builder.SoapOperation;
-import org.reficio.ws.builder.core.Wsdl;
-import org.w3c.dom.Document;
-import org.xnio.ChannelListener;
-import org.xnio.IoUtils;
-import org.xnio.channels.StreamSourceChannel;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 
 public class ValidationHandler implements HttpHandler {
 
@@ -89,7 +86,7 @@ public class ValidationHandler implements HttpHandler {
         String reqContent = getRequestMessage(httpServerExchange);
         log.info(logPrefix + "message retrieved");
         log.info(logPrefix + "message: " + reqContent.substring(0, reqContent.length() > 1000 ? 1000 : reqContent.length()));
-        //log.info(logPrefix + "resource: " + this.getClass().getResource("/xsds/xop.xsd").toExternalForm());
+        log.info(logPrefix + "resource: " + Wsdl.class.getResource("/xsds/xop.xsd"));
         if (reqContent.length() == 0) {
             failReason = "no msg found in lwi context";
             log.error(logPrefix + failReason);
@@ -101,7 +98,7 @@ public class ValidationHandler implements HttpHandler {
                 validationOk = false;
             } else {
                 log.info(logPrefix + "parsing wsdl: " + wsdlLocation);
-                Wsdl wsdl = Wsdl.parse(wsdlLocation); // "file:///d:/work/wsdl-validator/data/GetBillingProfileId_v1.wsdl"
+                Wsdl wsdl = Wsdl.parse(wsdlLocation);
                 log.info(logPrefix + "wsdl parsed");
                 if (wsdl.getBindings() == null || wsdl.getBindings().size() == 0) {
                     failReason = "no bindings found in wsdl";
@@ -131,70 +128,29 @@ public class ValidationHandler implements HttpHandler {
 
     private boolean validateByContext(HttpServerExchange httpServerExchange) {
         String reqContent = getRequestMessage(httpServerExchange);
-        Document doc;
+
+        LwiRequestData lwiRequestData = new LwiRequestData(httpServerExchange);
         try {
-            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-            doc = dBuilder.parse(new ByteArrayInputStream(reqContent.getBytes())); // TODO encoding?
+            Stack<String> qNames = new Stack<>();
+        	qNames.push("ROOT");
+        	
+        	LwiLogAttributeUtil.getMessageAttributes(qNames, lwiRequestData, reqContent);
         } catch (Exception e) {
             failReason = "Not a soap message";
             log.error(logPrefix + failReason);
             return false;
         }
-        String requestId;
-        String correlationId;
-        String userId;
-
-        // 1. soap attribute
-        requestId = LwiLogAttributeUtil.getSoapAttribute(doc, LwiLogAttribute.RequestId);
-        if (requestId != null) { // ha talalt requestId-t, akkor a tobbit is ott varja
-            log.debug("Soap attribute requestId detected");
-            correlationId = LwiLogAttributeUtil.getSoapAttribute(doc, LwiLogAttribute.CorrelationId);
-            userId = LwiLogAttributeUtil.getSoapAttribute(doc, LwiLogAttribute.UserId);
-            return isValidationOk(requestId, correlationId, userId);
-        }
-
-        // 2. tech osb
-        requestId = LwiLogAttributeUtil.getTechOSBAttribute(doc, LwiLogAttribute.RequestId);
-        if (requestId != null) {
-            log.debug("TechOSB requestId detected");
-            correlationId = LwiLogAttributeUtil.getTechOSBAttribute(doc, LwiLogAttribute.CorrelationId);
-            userId = LwiLogAttributeUtil.getTechOSBAttribute(doc, LwiLogAttribute.UserId);
-            return isValidationOk(requestId, correlationId, userId);
-        }
-
-        // 3. new osb
-        requestId = LwiLogAttributeUtil.getNewOSBAttribute(doc, LwiLogAttribute.RequestId);
-        if (requestId != null) {
-            log.debug("NewOSB requestId detected");
-            correlationId = LwiLogAttributeUtil.getNewOSBAttribute(doc, LwiLogAttribute.CorrelationId);
-            userId = LwiLogAttributeUtil.getNewOSBAttribute(doc, LwiLogAttribute.UserId);
-            return isValidationOk(requestId, correlationId, userId);
-        }
-
-        // 4. http header
-        // TODO ha nincs msg, ezt akkor is lehet vizsgalni
-        requestId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.RequestId);
-        if (requestId != null) {
-            log.debug("HTTP Header requestId detected");
-            correlationId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.CorrelationId);
-            userId = LwiLogAttributeUtil.getHttpHeaderAttribute(httpServerExchange, LwiLogAttribute.UserId);
-            return isValidationOk(requestId, correlationId, userId);
-        } else {
-            failReason = "No applicable context detected";
-            log.error(logPrefix + failReason);
-            return false;
-        }
+        return isValidationOk(lwiRequestData);
     }
 
-    private boolean isValidationOk(String requestId, String correlationId, String userId) {
+    private boolean isValidationOk(LwiRequestData lwiRequestData) {
         boolean validationOk = true;
-        if (correlationId == null || userId == null) {
+        if (lwiRequestData.getCorrelationId() == null || lwiRequestData.getUserId() == null) {
             validationOk = false;
-            failReason = "Attribute validation failed! requestId=" + requestId + ", correlationId=" + correlationId + ", userId=" + userId;
+            failReason = "Attribute validation failed! requestId=" + lwiRequestData.getRequestId() + ", correlationId=" + lwiRequestData.getCorrelationId() + ", userId=" + lwiRequestData.getUserId();
             log.error(logPrefix + failReason);
         } else {
-            log.info(logPrefix + "Attribute validation OK requestId=" + requestId + ", correlationId=" + correlationId + ", userId=" + userId);
+            log.info(logPrefix + "Attribute validation OK requestId=" + lwiRequestData.getRequestId() + ", correlationId=" + lwiRequestData.getCorrelationId() + ", userId=" + lwiRequestData.getUserId());
         }
         return validationOk;
     }

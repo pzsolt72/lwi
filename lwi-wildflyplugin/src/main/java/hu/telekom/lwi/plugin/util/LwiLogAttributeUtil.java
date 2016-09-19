@@ -1,87 +1,80 @@
 package hu.telekom.lwi.plugin.util;
 
-import java.io.ByteArrayInputStream;
+import java.util.Stack;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
+import javax.xml.namespace.QName;
+import javax.xml.stream.XMLEventReader;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.events.Attribute;
+import javax.xml.stream.events.Characters;
+import javax.xml.stream.events.StartElement;
+import javax.xml.stream.events.XMLEvent;
 
 import org.jboss.logging.Logger;
-import org.w3c.dom.Document;
 
 import hu.telekom.lwi.plugin.log.LwiLogAttribute;
+import hu.telekom.lwi.plugin.log.LwiRequestData;
 import io.undertow.server.HttpServerExchange;
 
 public class LwiLogAttributeUtil {
-	
+
 	private static final Logger log = Logger.getLogger(LwiLogAttributeUtil.class);
-	
+
 	private static final String CLEANSE_REGEX = "(\n|\t|\r|\\s{2,})";
 
-	public static String getMessageAttribute(LwiLogAttribute attribute, String message) {
-		String value = null;
-		Document doc = null;
+	public static void getMessageAttributes(Stack<String> qNames, LwiRequestData lwiRequestData, String message) {
 		try {
-			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-			doc = dBuilder.parse(new ByteArrayInputStream(message.getBytes()));
+			XMLEventReader eventReader = LwiXmlUtil.getXmlEventReader(qNames, message);
+	
+			while (eventReader.hasNext() && lwiRequestData.parseRequestRequired()) {
+				XMLEvent event = eventReader.nextEvent();
+				switch (event.getEventType()) {
+				case XMLStreamConstants.START_ELEMENT:
+					StartElement startElement = event.asStartElement();
+					qNames.push(qNames.peek()+"/"+startElement.getName().getLocalPart());
+					if (qNames.size() < 5) {
+						setRequestDataFromAttribute(lwiRequestData, startElement);
+					}
+					break;
+				case XMLStreamConstants.END_ELEMENT:
+					qNames.pop();
+					break;
+				case XMLStreamConstants.CHARACTERS:
+					Characters characters = event.asCharacters();
+					setRequestDataFromElement(lwiRequestData, qNames.peek(), characters.getData());
+					break;
+				}
+			}
 		} catch (Exception e) {
-			// not a soap message
+			log.error("LwiLogAttributeUtil > Invalid soap xml! - Cannot get request attributes from message.", e);
 		}
-		
-		if ((doc != null && (  
-					(value = getSoapAttribute(doc, attribute)) != null ||
-					(value = getNewOSBAttribute(doc, attribute)) != null ||
-					(value = getTechOSBAttribute(doc, attribute)) != null))) {
-			
-			log.debug(String.format("MessageLogHandler.getMessageAttribute(%s) found - %s", attribute.name(), value));
-			return value;
-		}
-		log.debug(String.format("MessageLogHandler.getMessageAttribute(%s) is empty", attribute.name()));
-		return LwiLogAttribute.EMPTY;
 	}
 
-	public static String getSoapAttribute(Document doc, LwiLogAttribute attribute) {
-		try {
-			XPath xpath = XPathFactory.newInstance().newXPath();
-			String value = (String) xpath.compile(attribute.getSoapAttribute()).evaluate(doc, XPathConstants.STRING);
-			if (value != null && !value.isEmpty()) {
-				return value;
-			}
-		} catch (Exception e) {
-			log.error("Unable to parse general soap message", e);
+	private static void setRequestDataFromAttribute(LwiRequestData lwiRequestData, StartElement element) {
+		Attribute attribute = null;
+		if (lwiRequestData.isNullRequestId() && (attribute = element.getAttributeByName(new QName(LwiLogAttribute.RequestId.name()))) != null) {
+			lwiRequestData.setRequestId(attribute.getValue());
 		}
-		return null;
+		if (lwiRequestData.isNullCorrelationId() && (attribute = element.getAttributeByName(new QName(LwiLogAttribute.CorrelationId.name()))) != null) {
+			lwiRequestData.setCorrelationId(attribute.getValue());
+		}
+		if (lwiRequestData.isNullUserId() && (attribute = element.getAttributeByName(new QName(LwiLogAttribute.UserId.name()))) != null) {
+			lwiRequestData.setUserId(attribute.getValue());
+		}
 	}
 	
-	public static String getNewOSBAttribute(Document doc, LwiLogAttribute attribute) {
-		try {
-			XPath xpath = XPathFactory.newInstance().newXPath();
-			String value = (String) xpath.compile(attribute.getNewOSBAttribute()).evaluate(doc, XPathConstants.STRING);
-			if (value != null && !value.isEmpty()) {
-				return value;
-			}
-		} catch (Exception e) {
-			log.error("Unable to parse new osb soap message", e);
+	private static void setRequestDataFromElement(LwiRequestData lwiRequestData, String qName, String value) {
+		if (lwiRequestData.isNullRequestId() && LwiLogAttribute.RequestId.isKeyXmlElement(qName)) {
+			lwiRequestData.setRequestId(value);
 		}
-		return null;
+		if (lwiRequestData.isNullCorrelationId() && LwiLogAttribute.CorrelationId.isKeyXmlElement(qName)) {
+			lwiRequestData.setCorrelationId(value);
+		}
+		if (lwiRequestData.isNullUserId() && LwiLogAttribute.UserId.isKeyXmlElement(qName)) {
+			lwiRequestData.setUserId(value);
+		}
 	}
 
-	public static String getTechOSBAttribute(Document doc, LwiLogAttribute attribute) {
-		try {
-			XPath xpath = XPathFactory.newInstance().newXPath();
-			String value = (String) xpath.compile(attribute.getTechOSBAttribute()).evaluate(doc, XPathConstants.STRING);
-			if (value != null && !value.isEmpty()) {
-				return value;
-			}
-		} catch (Exception e) {
-			log.error("Unable to parse tech osb soap message", e);
-		}
-		return null;
-	}
-	
 	public static String getHttpHeaderAttribute(HttpServerExchange exchange, LwiLogAttribute attribute) {
 		return exchange.getRequestHeaders().getFirst(attribute.getHttpHeaderAttribute());
 	}

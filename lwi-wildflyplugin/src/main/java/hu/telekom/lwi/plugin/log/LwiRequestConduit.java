@@ -3,6 +3,7 @@ package hu.telekom.lwi.plugin.log;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Stack;
 
 import org.jboss.logging.Logger;
 import org.xnio.IoUtils;
@@ -24,10 +25,14 @@ public class LwiRequestConduit extends AbstractStreamSourceConduit<StreamSourceC
 	
 	private boolean logAvailable = false;
 	
+	private Stack<String> qNames;
+	
 	protected LwiRequestConduit(StreamSourceConduit next, LwiConduitWrapper parent) {
 		super(next);
 		this.parent = parent;
 		this.requestBuffer = new StringBuffer();
+		this.qNames = new Stack<>();
+		this.qNames.push("ROOT");
 	}
 
 	public long getRequestFinished() {
@@ -64,16 +69,8 @@ public class LwiRequestConduit extends AbstractStreamSourceConduit<StreamSourceC
 		logAvailable = true;
 		
 		if (parent.getLwiRequestData().parseRequestRequired()) {
-			String request = requestBuffer.toString();
-			if (parent.getLwiRequestData().isNullRequestId()) {
-				parent.getLwiRequestData().setRequestId(LwiLogAttributeUtil.getMessageAttribute(LwiLogAttribute.RequestId, request));
-			}
-			if (parent.getLwiRequestData().isNullCorrelationId()) {
-				parent.getLwiRequestData().setCorrelationId(LwiLogAttributeUtil.getMessageAttribute(LwiLogAttribute.CorrelationId, request));
-			}
-			if (parent.getLwiRequestData().isNullUserId()) {
-				parent.getLwiRequestData().setUserId(LwiLogAttributeUtil.getMessageAttribute(LwiLogAttribute.UserId, request));
-			}
+			String message = requestBuffer.toString();
+			LwiLogAttributeUtil.getMessageAttributes(qNames, parent.getLwiRequestData(), message);
 		}
 
 		if (requestBuffer.length() > LwiConduitWrapper.MAXBUFFER) {
