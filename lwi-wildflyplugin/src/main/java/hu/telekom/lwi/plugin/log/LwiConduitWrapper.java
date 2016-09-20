@@ -125,7 +125,7 @@ public class LwiConduitWrapper implements ExchangeCompletionListener {
 	}
 
 	public boolean processRequestRequired() {
-		return logMessages || (lwiRequestData != null && lwiRequestData.parseRequestRequired());
+		return logMessages;
 	}
 
 	public boolean processResponseRequired() {
