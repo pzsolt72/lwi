@@ -13,6 +13,7 @@ import org.xnio.ChannelListener;
 import org.xnio.IoUtils;
 import org.xnio.channels.StreamSourceChannel;
 
+import hu.telekom.lwi.plugin.log.LwiLogAttribute;
 import hu.telekom.lwi.plugin.log.LwiRequestData;
 import hu.telekom.lwi.plugin.util.LwiLogAttributeUtil;
 import io.undertow.UndertowLogger;
@@ -21,6 +22,7 @@ import io.undertow.io.Sender;
 import io.undertow.server.Connectors;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
+import io.undertow.util.HttpString;
 
 public class ValidationHandler implements HttpHandler {
 
@@ -77,6 +79,7 @@ public class ValidationHandler implements HttpHandler {
             httpServerExchange.setStatusCode(VALIDATION_ERROR_CODE);
             Sender sender = httpServerExchange.getResponseSender();
             sender.send(createSoapFault(validationType, failReason));
+            
         }
 
     }
@@ -135,6 +138,24 @@ public class ValidationHandler implements HttpHandler {
         	qNames.push("ROOT");
         	
         	LwiLogAttributeUtil.getMessageAttributes(qNames, lwiRequestData, reqContent);
+        	
+        	
+        	if ( lwiRequestData.getRequestId() != null ) {
+        		httpServerExchange.getRequestHeaders().add(new HttpString(LwiLogAttribute.HTTP_HEADER + LwiLogAttribute.RequestId.name()), lwiRequestData.getRequestId());
+        		log.debug(logPrefix + "Adding RequestId to the header");
+        	}
+        	
+        	if ( lwiRequestData.getCorrelationId() != null ) {
+        		httpServerExchange.getRequestHeaders().add(new HttpString(LwiLogAttribute.HTTP_HEADER + LwiLogAttribute.CorrelationId.name()), lwiRequestData.getCorrelationId());
+        		log.debug(logPrefix + "Adding CorrelationId to the header");
+        	}
+        	
+        	if ( lwiRequestData.getUserId() != null ) {
+        		httpServerExchange.getRequestHeaders().add(new HttpString(LwiLogAttribute.HTTP_HEADER + LwiLogAttribute.UserId.name()), lwiRequestData.getUserId());
+        		log.debug(logPrefix + "Adding UserId to the header");
+        	}
+        	
+        	
         } catch (Exception e) {
             failReason = "Not a soap message";
             log.error(logPrefix + failReason);
