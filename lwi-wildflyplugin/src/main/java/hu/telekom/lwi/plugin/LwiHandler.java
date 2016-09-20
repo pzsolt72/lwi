@@ -100,14 +100,19 @@ public class LwiHandler implements HttpHandler {
 
 			exchange.getRequestHeaders().add(new HttpString(LWI_REQUEST_ID_KEY), lwiRequestId);
 
-			if (!parametersAreValidated)
-				validateHandlerParameters();
-
 			log.info(String.format(
 					"[%s] LwiHandler->handle %s maxRequestss: %s, queueSize: %s, logLevel: %s,  validationType: %s, skipAuth: %s, requestTimeout: %s" ,
 					lwiRequestId, exchange.getRequestURL(), maxRequests, queueSize, logLevel, validationType,
 					skipAuthentication, requestTimeout));
 
+			// ez nem kell, ha a lenti müködik
+			next.handleRequest(exchange);
+
+			
+			// kikommentezve csak egyedi handler configokkal müködik
+			/*  
+			if (!parametersAreValidated)
+				validateHandlerParameters();
 
 
 			if (requestLimitHandler == null) {
@@ -138,8 +143,12 @@ public class LwiHandler implements HttpHandler {
 				LwiSecurityHandler securityHandler = new LwiSecurityHandler(nnnext);			
 				nnnext = securityHandler;
 			}
-
+			
+			
 			requestLimitHandler.handleRequest(exchange, nnnext);
+			
+			*/
+			
 		} catch (Throwable e) {
 			log.error(String.format("[%s] LwiHandler->error : " + e.getMessage(), LwiHandler.getLwiRequestId(exchange)),e);
 			LwiHandler.handleExcetption(exchange, e);
