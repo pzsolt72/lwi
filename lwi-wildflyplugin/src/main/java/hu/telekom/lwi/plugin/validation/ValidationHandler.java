@@ -60,10 +60,11 @@ public class ValidationHandler implements HttpHandler {
         try {
             if (validationType == ValidationType.MSG) {
                 logInfo("validating by message...");
+                parseContext(httpServerExchange); // parse context anyway
                 validationOk = validateByMsg(httpServerExchange);
             } else if (validationType == ValidationType.CTX) {
                 logInfo("validating by context...");
-                validationOk = validateByContext(httpServerExchange);
+                validationOk = validateByContext(parseContext(httpServerExchange));
             } else if (validationType == ValidationType.NO) {
                 logInfo("skipping validation");
             }
@@ -129,9 +130,13 @@ public class ValidationHandler implements HttpHandler {
         return validationOk;
     }
 
-    private boolean validateByContext(HttpServerExchange httpServerExchange) {
-        String reqContent = getRequestMessage(httpServerExchange);
+    private boolean validateByContext(LwiRequestData lwiRequestData) {
+        return isValidationOk(lwiRequestData);
+    }
 
+    private LwiRequestData parseContext(HttpServerExchange httpServerExchange) {
+        logDebug("Context parse");
+        String reqContent = getRequestMessage(httpServerExchange);
         LwiRequestData lwiRequestData = new LwiRequestData(httpServerExchange);
         try {
             Stack<String> qNames = new Stack<>();
@@ -146,9 +151,9 @@ public class ValidationHandler implements HttpHandler {
         } catch (Exception e) {
             failReason = "Not a soap message";
             logError(failReason + " reqMsg=" + "(length=" + reqContent.length() + ") " + reqContent.substring(0,(reqContent.length() < 1001 ? reqContent.length() : 1000)));
-            return false;
+            lwiRequestData = null;
         }
-        return isValidationOk(lwiRequestData);
+        return lwiRequestData;
     }
 
     private void addToHttpHeader(HttpServerExchange httpServerExchange, String value, LwiLogAttribute lwiLogAttribute) {
@@ -160,6 +165,11 @@ public class ValidationHandler implements HttpHandler {
 
     private boolean isValidationOk(LwiRequestData lwiRequestData) {
         boolean validationOk = true;
+        if (lwiRequestData == null) {
+            failReason = "Context parse failed";
+            logError(failReason);
+            return false;
+        }
         if (lwiRequestData.getCorrelationId() == null || lwiRequestData.getUserId() == null) {
             validationOk = false;
             failReason = "Attribute validation failed! requestId=" + lwiRequestData.getRequestId() + ", correlationId=" + lwiRequestData.getCorrelationId() + ", userId=" + lwiRequestData.getUserId();
