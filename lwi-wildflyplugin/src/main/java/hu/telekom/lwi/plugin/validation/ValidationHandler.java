@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Stack;
 
+import hu.telekom.lwi.plugin.LwiHandler;
 import org.jboss.logging.Logger;
 import org.reficio.ws.SoapValidationException;
 import org.reficio.ws.builder.SoapBuilder;
@@ -27,16 +28,15 @@ import io.undertow.util.HttpString;
 public class ValidationHandler implements HttpHandler {
 
     private static final int VALIDATION_ERROR_CODE = 500;
-    private static final String VALIDATION_ERROR_MSG = "Message validation failed";
-    private final Logger log = Logger.getLogger(ValidationHandler.class);
+    private static final Logger log = Logger.getLogger(ValidationHandler.class);
     private final String logPrefix = "ValidationHandler > ";
     private final int maxBuffers = 100000;
     private ValidationType validationType = ValidationType.MSG;
     private String wsdlLocation = null;
     private HttpHandler next = null;
-    private String msg = null;
+    private String reqMsg = null;
     private String failReason = null;
-
+    private String lwiRequestId;
 
     public ValidationHandler(HttpHandler next) {
         this.next = next;
@@ -52,60 +52,60 @@ public class ValidationHandler implements HttpHandler {
 
     @Override
     public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
-        log.info(logPrefix + "handle start...");
+        lwiRequestId = LwiHandler.getLwiRequestId(httpServerExchange);
+        logInfo("handle start...");
+
         boolean validationOk = true;
 
         try {
             if (validationType == ValidationType.MSG) {
-                log.info(logPrefix + "validating by message...");
+                logInfo("validating by message...");
                 validationOk = validateByMsg(httpServerExchange);
             } else if (validationType == ValidationType.CTX) {
-                log.info(logPrefix + "validating by context...");
+                logInfo("validating by context...");
                 validationOk = validateByContext(httpServerExchange);
             } else if (validationType == ValidationType.NO) {
-                log.info(logPrefix + "skipping validation");
+                logInfo("skipping validation");
             }
         } catch (Exception e) {
             validationOk = false;
             failReason = "Internal error: " + e.getMessage();
-            log.error(logPrefix + failReason, e);
+            logError(failReason, e);
         }
 
         if (validationOk) {
-            log.info(logPrefix + "Validation OK.");
+            logInfo("Validation OK.");
             next.handleRequest(httpServerExchange);
         } else {
-            log.error(logPrefix + "Validation FAILED.");
+            logError("Validation FAILED.");
             httpServerExchange.setStatusCode(VALIDATION_ERROR_CODE);
             Sender sender = httpServerExchange.getResponseSender();
             sender.send(createSoapFault(validationType, failReason));
-            
         }
-
     }
 
     private boolean validateByMsg(HttpServerExchange httpServerExchange) {
         boolean validationOk = true;
         String reqContent = getRequestMessage(httpServerExchange);
-        log.info(logPrefix + "message retrieved");
-        log.info(logPrefix + "message: " + reqContent.substring(0, reqContent.length() > 1000 ? 1000 : reqContent.length()));
-        log.info(logPrefix + "resource: " + Wsdl.class.getResource("/xsds/xop.xsd"));
+        logInfo("message retrieved");
+        logInfo("message: " + reqContent.substring(0, reqContent.length() > 1000 ? 1000 : reqContent.length()));
+        logInfo("resource: " + Wsdl.class.getResource("/xsds/xop.xsd"));
         if (reqContent.length() == 0) {
             failReason = "no msg found in lwi context";
-            log.error(logPrefix + failReason);
+            logError(failReason);
             validationOk = false;
         } else {
             if (wsdlLocation == null) {
                 failReason = "no wsdlLocation filter param defined";
-                log.error(logPrefix + failReason);
+                logError(failReason);
                 validationOk = false;
             } else {
-                log.info(logPrefix + "parsing wsdl: " + wsdlLocation);
+                logInfo("parsing wsdl: " + wsdlLocation);
                 Wsdl wsdl = Wsdl.parse(wsdlLocation);
-                log.info(logPrefix + "wsdl parsed");
+                logInfo("wsdl parsed");
                 if (wsdl.getBindings() == null || wsdl.getBindings().size() == 0) {
                     failReason = "no bindings found in wsdl";
-                    log.error(logPrefix + failReason);
+                    logError(failReason);
                     validationOk = false;
                 } else {
                     String localPart = wsdl.getBindings().get(0).getLocalPart();
@@ -113,10 +113,10 @@ public class ValidationHandler implements HttpHandler {
                     SoapOperation op = builder.getOperations().get(0);
                     try {
                         builder.validateInputMessage(op, reqContent);
-                        log.debug(logPrefix + "request is VALID");
+                        logDebug("request is VALID");
                     } catch (SoapValidationException e) {
                         failReason = "request is NOT VALID. Found " + e.getErrors().size() + "errors.";
-                        log.error(logPrefix + failReason);
+                        logError(failReason);
                         validationOk = false;
                         int errCnt = 1;
                         for (AssertionError err : e.getErrors()) {
@@ -138,30 +138,24 @@ public class ValidationHandler implements HttpHandler {
         	qNames.push("ROOT");
         	
         	LwiLogAttributeUtil.getMessageAttributes(qNames, lwiRequestData, reqContent);
-        	
-        	
-        	if ( lwiRequestData.getRequestId() != null ) {
-        		httpServerExchange.getRequestHeaders().add(new HttpString(LwiLogAttribute.HTTP_HEADER + LwiLogAttribute.RequestId.name()), lwiRequestData.getRequestId());
-        		log.debug(logPrefix + "Adding RequestId to the header");
-        	}
-        	
-        	if ( lwiRequestData.getCorrelationId() != null ) {
-        		httpServerExchange.getRequestHeaders().add(new HttpString(LwiLogAttribute.HTTP_HEADER + LwiLogAttribute.CorrelationId.name()), lwiRequestData.getCorrelationId());
-        		log.debug(logPrefix + "Adding CorrelationId to the header");
-        	}
-        	
-        	if ( lwiRequestData.getUserId() != null ) {
-        		httpServerExchange.getRequestHeaders().add(new HttpString(LwiLogAttribute.HTTP_HEADER + LwiLogAttribute.UserId.name()), lwiRequestData.getUserId());
-        		log.debug(logPrefix + "Adding UserId to the header");
-        	}
-        	
-        	
+
+            addToHttpHeader(httpServerExchange, lwiRequestData.getRequestId(), LwiLogAttribute.RequestId);
+            addToHttpHeader(httpServerExchange, lwiRequestData.getCorrelationId(), LwiLogAttribute.CorrelationId);
+            addToHttpHeader(httpServerExchange, lwiRequestData.getUserId(), LwiLogAttribute.UserId);
+
         } catch (Exception e) {
             failReason = "Not a soap message";
-            log.error(logPrefix + failReason + " reqMsg=" + "(length=" + reqContent.length() + ") " + reqContent.substring(0,(reqContent.length() < 1001 ? reqContent.length() : 1000)));
+            logError(failReason + " reqMsg=" + "(length=" + reqContent.length() + ") " + reqContent.substring(0,(reqContent.length() < 1001 ? reqContent.length() : 1000)));
             return false;
         }
         return isValidationOk(lwiRequestData);
+    }
+
+    private void addToHttpHeader(HttpServerExchange httpServerExchange, String value, LwiLogAttribute lwiLogAttribute) {
+        if ( value != null ) {
+            httpServerExchange.getRequestHeaders().add(new HttpString(LwiLogAttribute.HTTP_HEADER + lwiLogAttribute.name()), value);
+            logDebug("Adding " + lwiLogAttribute.name() + " to the header");
+        }
     }
 
     private boolean isValidationOk(LwiRequestData lwiRequestData) {
@@ -169,15 +163,15 @@ public class ValidationHandler implements HttpHandler {
         if (lwiRequestData.getCorrelationId() == null || lwiRequestData.getUserId() == null) {
             validationOk = false;
             failReason = "Attribute validation failed! requestId=" + lwiRequestData.getRequestId() + ", correlationId=" + lwiRequestData.getCorrelationId() + ", userId=" + lwiRequestData.getUserId();
-            log.error(logPrefix + failReason);
+            logError(failReason);
         } else {
-            log.info(logPrefix + "Attribute validation OK requestId=" + lwiRequestData.getRequestId() + ", correlationId=" + lwiRequestData.getCorrelationId() + ", userId=" + lwiRequestData.getUserId());
+            logInfo("Attribute validation OK requestId=" + lwiRequestData.getRequestId() + ", correlationId=" + lwiRequestData.getCorrelationId() + ", userId=" + lwiRequestData.getUserId());
         }
         return validationOk;
     }
 
     private String getRequestMessage(HttpServerExchange exchange) {
-        if (msg == null) {
+        if (reqMsg == null) {
             try {
                 final StreamSourceChannel channel = exchange.getRequestChannel();
                 int readBuffers = 0;
@@ -217,7 +211,7 @@ public class ValidationHandler implements HttpHandler {
                                                 bufferedData[readBuffers] = buffer;
                                             }
                                             if (exchange.isComplete()) {
-                                                log.warn(logPrefix + "reading buffer while exchange is complete already. readBuffers = " + readBuffers);
+                                                logError("reading buffer while exchange is complete already. readBuffers = " + readBuffers);
                                                 return;
                                             }
                                             Connectors.ungetRequestBytes(exchange, bufferedData);
@@ -232,7 +226,7 @@ public class ValidationHandler implements HttpHandler {
                                             bufferedData[readBuffers++] = buffer;
                                             if (readBuffers == maxBuffers) {
                                                 if (exchange.isComplete()) {
-                                                    log.warn(logPrefix + "reading buffer while exchange is complete already. readBuffers = " + readBuffers);
+                                                    logError("reading buffer while exchange is complete already. readBuffers = " + readBuffers);
                                                     return;
                                                 }
                                                 Connectors.ungetRequestBytes(exchange, bufferedData);
@@ -279,17 +273,17 @@ public class ValidationHandler implements HttpHandler {
                     sb.append(new String(byteBuffer, charset));
                 }
 
-                msg = sb.toString();
+                reqMsg = sb.toString();
 
                 Connectors.ungetRequestBytes(exchange, bufferedData);
                 Connectors.resetRequestChannel(exchange);
 
             } catch (IOException e) {
                 failReason = "Internal error. Unable to get post request message";
-                log.error(logPrefix, failReason, e);
+                logError(failReason, e);
             }
         }
-        return msg;
+        return reqMsg;
     }
 
     private static String createSoapFault(ValidationType validationType, String msg) {
@@ -306,4 +300,22 @@ public class ValidationHandler implements HttpHandler {
                 "</SOAP-ENV:Envelope>";
         return String.format(template, validationType.toString() + " validation FAILED", msg);
     }
+
+    private void log(Logger.Level logLevel, String message) {
+        log.log(logLevel, String.format("[%s] " + logPrefix + message, lwiRequestId));
+    }
+    private void logInfo(String message) {
+        log(Logger.Level.INFO, message);
+    }
+    private void logDebug(String message) {
+        log(Logger.Level.DEBUG, message);
+    }
+    private void logError(String message) {
+        log(Logger.Level.ERROR, message);
+    }
+    private void logError(String message, Throwable t) {
+        log.error(String.format("[%s] " + logPrefix + message, lwiRequestId), t);
+    }
+
+
 }
