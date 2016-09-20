@@ -27,7 +27,7 @@ public class ValidationHandler implements HttpHandler {
     private static final int VALIDATION_ERROR_CODE = 500;
     private static final String VALIDATION_ERROR_MSG = "Message validation failed";
     private final Logger log = Logger.getLogger(ValidationHandler.class);
-    private final String logPrefix = "LogRequestHandler > ";
+    private final String logPrefix = "ValidationHandler > ";
     private final int maxBuffers = 100000;
     private ValidationType validationType = ValidationType.MSG;
     private String wsdlLocation = null;
@@ -137,7 +137,7 @@ public class ValidationHandler implements HttpHandler {
         	LwiLogAttributeUtil.getMessageAttributes(qNames, lwiRequestData, reqContent);
         } catch (Exception e) {
             failReason = "Not a soap message";
-            log.error(logPrefix + failReason);
+            log.error(logPrefix + failReason + " reqMsg=" + "(length=" + reqContent.length() + ") " + reqContent.substring(0,(reqContent.length() < 1001 ? reqContent.length() : 1000)));
             return false;
         }
         return isValidationOk(lwiRequestData);
@@ -195,6 +195,10 @@ public class ValidationHandler implements HttpHandler {
                                                 b.flip();
                                                 bufferedData[readBuffers] = buffer;
                                             }
+                                            if (exchange.isComplete()) {
+                                                log.warn(logPrefix + "reading buffer while exchange is complete already. readBuffers = " + readBuffers);
+                                                return;
+                                            }
                                             Connectors.ungetRequestBytes(exchange, bufferedData);
                                             Connectors.resetRequestChannel(exchange);
                                             Connectors.executeRootHandler(next, exchange);
@@ -206,6 +210,10 @@ public class ValidationHandler implements HttpHandler {
                                             b.flip();
                                             bufferedData[readBuffers++] = buffer;
                                             if (readBuffers == maxBuffers) {
+                                                if (exchange.isComplete()) {
+                                                    log.warn(logPrefix + "reading buffer while exchange is complete already. readBuffers = " + readBuffers);
+                                                    return;
+                                                }
                                                 Connectors.ungetRequestBytes(exchange, bufferedData);
                                                 Connectors.resetRequestChannel(exchange);
                                                 Connectors.executeRootHandler(next, exchange);
