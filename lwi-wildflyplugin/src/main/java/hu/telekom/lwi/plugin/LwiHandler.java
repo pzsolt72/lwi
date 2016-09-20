@@ -123,18 +123,15 @@ public class LwiHandler implements HttpHandler {
 			ProxyHandler proxyhandler = new ProxyHandler(lbpc, requestTimeout, ResponseCodeHandler.HANDLE_404);
 			nnnext = proxyhandler;
 
-			if ( true ) {
-				ValidationHandler validationHandler = new ValidationHandler(nnnext);
-				validationHandler.setValidationType(validationType);
-				validationHandler.setWsdlLocation(backEndServiceUrl + "?WSDL");
-				nnnext = validationHandler;
-			}
+			LwiLogHandler lwiLogHandler = new LwiLogHandler(nnnext);
+			lwiLogHandler.setLogLevel(logLevel);
+			nnnext = lwiLogHandler;
+				
+			ValidationHandler validationHandler = new ValidationHandler(nnnext);
+			validationHandler.setValidationType(validationType);
+			validationHandler.setWsdlLocation(backEndServiceUrl + "?WSDL");
+			nnnext = validationHandler;
 
-			if ( true ) {
-				LwiLogHandler lwiLogHandler = new LwiLogHandler(nnnext);
-				lwiLogHandler.setLogLevel(logLevel);
-				nnnext = lwiLogHandler;
-			}
 
 			// can be skipped!!
 			if ( !skipAuthentication ) {			

@@ -68,11 +68,6 @@ public class LwiRequestConduit extends AbstractStreamSourceConduit<StreamSourceC
 
 		logAvailable = true;
 		
-		if (parent.getLwiRequestData().parseRequestRequired()) {
-			String message = requestBuffer.toString();
-			LwiLogAttributeUtil.getMessageAttributes(qNames, parent.getLwiRequestData(), message);
-		}
-
 		if (requestBuffer.length() > LwiConduitWrapper.MAXBUFFER) {
 			parent.logRequest(true);
 		}
