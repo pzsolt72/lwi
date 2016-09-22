@@ -52,6 +52,8 @@ public class ValidationHandler implements HttpHandler {
 
     @Override
     public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
+        reqMsg = null;
+        failReason = null;
         lwiRequestId = LwiHandler.getLwiRequestId(httpServerExchange);
         logInfo("handle start...");
 
