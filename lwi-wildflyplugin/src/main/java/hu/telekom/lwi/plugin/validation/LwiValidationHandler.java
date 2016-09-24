@@ -1,0 +1,136 @@
+package hu.telekom.lwi.plugin.validation;
+
+import org.jboss.logging.Logger;
+import org.reficio.ws.SoapValidationException;
+import org.reficio.ws.builder.SoapBuilder;
+import org.reficio.ws.builder.SoapOperation;
+import org.reficio.ws.builder.core.Wsdl;
+
+import hu.telekom.lwi.plugin.LwiHandler;
+import hu.telekom.lwi.plugin.data.LwiCall;
+import hu.telekom.lwi.plugin.data.LwiRequestData;
+import io.undertow.io.Sender;
+import io.undertow.server.HttpHandler;
+import io.undertow.server.HttpServerExchange;
+
+public class LwiValidationHandler implements HttpHandler {
+
+    private static final int VALIDATION_ERROR_CODE = 400;
+    private static final int INTERNAL_ERROR_CODE = 500;
+
+    private static final Logger log = Logger.getLogger(LwiValidationHandler.class);
+
+    private HttpHandler next = null;
+    private LwiValidationType validationType = LwiValidationType.MSG;
+    private String wsdlLocation = null;
+
+    public LwiValidationHandler(HttpHandler next) {
+        this.next = next;
+    }
+
+    public LwiValidationHandler(HttpHandler next, LwiValidationType validationType, String wsdlLocation) {
+        this.next = next;
+        this.validationType = validationType;
+        this.wsdlLocation = wsdlLocation;
+    }
+
+    @Override
+    public void handleRequest(HttpServerExchange exchange) throws Exception {
+        String lwiRequestId = LwiHandler.getLwiRequestId(exchange);
+        
+        log.info(String.format("[%s] LwiValidationHandler - start request validation (%s)...", lwiRequestId, validationType.name()));
+
+        LwiCall lwiCall = LwiHandler.getLwiCall(exchange);
+        try {
+        	switch (validationType) {
+				case MSG:
+					validateByMsg(exchange, lwiRequestId);
+				case CTX:
+					validateByContext(LwiHandler.getLwiRequestData(exchange), !lwiCall.isPartial());
+		            log.info(String.format("[%s] LwiValidationHandler - validation completed!", lwiRequestId));
+					break;
+				default: 
+		            log.info(String.format("[%s] LwiValidationHandler - ended without validation.", lwiRequestId));
+			}
+            next.handleRequest(exchange);
+        } catch (Exception e) {
+        	if (e instanceof ValidationException) {
+                log.warn(String.format("[%s] LwiValidationHandler - validation failed!", lwiRequestId));
+                exchange.setStatusCode(VALIDATION_ERROR_CODE);
+        	} else {
+        		log.error(String.format("[%s] LwiValidationHandler - validation error!", lwiRequestId));
+                exchange.setStatusCode(INTERNAL_ERROR_CODE);
+        	}
+            Sender sender = exchange.getResponseSender();
+            sender.send(createSoapFault(validationType, e.getMessage()));
+        }
+    }
+
+    private void validateByMsg(HttpServerExchange exchange, String lwiRequestId) throws Exception {
+        String reqContent = LwiHandler.getLwiRequest(exchange);
+
+        if (reqContent.length() == 0) {
+        	throw new Exception("no msg found in lwi context");
+        } else {
+            if (wsdlLocation == null) {
+            	throw new Exception("no wsdlLocation filter param defined");
+            } else {
+                log.info(String.format("[%s] LwiValidationHandler - parsing wsdl (%s)...", lwiRequestId, wsdlLocation));
+                Wsdl wsdl = Wsdl.parse(wsdlLocation);
+
+                if (wsdl.getBindings() == null || wsdl.getBindings().size() == 0) {
+                	throw new Exception("no bindings found in wsdl");
+                } else {
+                    String localPart = wsdl.getBindings().get(0).getLocalPart();
+                    SoapBuilder builder = wsdl.binding().localPart(localPart).find();
+                    SoapOperation op = builder.getOperations().get(0);
+                    try {
+                        builder.validateInputMessage(op, reqContent);
+                    } catch (SoapValidationException e) {
+                    	String error = "request is NOT VALID. Found " + e.getErrors().size() + "errors.";
+                        int errCnt = 1;
+                        for (AssertionError err : e.getErrors()) {
+                        	error += "\n#" + (errCnt++) + ": " + err.getMessage();
+                        }
+                    	throw new ValidationException(error);
+                    }
+                }
+            }
+        }
+    }
+
+    private void validateByContext(LwiRequestData lwiRequestData, boolean failOnMissing) throws Exception {
+        if (lwiRequestData == null) {
+        	throw new Exception("Context parse failed!");
+        }
+
+        if (lwiRequestData.parseRequestRequired() && failOnMissing) {
+        	throw new ValidationException("Attribute validation failed!");
+        }
+    }
+
+    private static String createSoapFault(LwiValidationType validationType, String msg) {
+        String template = "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
+                "  <SOAP-ENV:Body>\n" +
+                "      <SOAP-ENV:Fault>\n" +
+                "         <faultcode>SOAP-ENV:Client</faultcode>\n" +
+                "         <faultstring>\n" +
+                "          %s %s\n" +
+                "          %s\n" +
+                "         </faultstring>\n" +
+                "      </SOAP-ENV:Fault>\n" +
+                "   </SOAP-ENV:Body>\n" +
+                "</SOAP-ENV:Envelope>";
+        return String.format(template, validationType.toString(), "validation FAILED", msg);
+    }
+
+
+    public void setValidationType(String validationType) {
+        this.validationType = LwiValidationType.valueOf(validationType);
+    }
+
+    public void setWsdlLocation(String wsdlLocation) {
+        this.wsdlLocation = wsdlLocation;
+    }
+
+}

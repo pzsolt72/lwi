@@ -1,5 +1,6 @@
-package hu.telekom.lwi.plugin.log;
+package hu.telekom.lwi.plugin.data;
 
+import hu.telekom.lwi.plugin.log.LwiLogAttribute;
 import hu.telekom.lwi.plugin.util.LwiLogAttributeUtil;
 import io.undertow.server.HttpServerExchange;
 
