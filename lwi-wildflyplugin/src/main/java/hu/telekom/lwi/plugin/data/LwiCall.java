@@ -1,8 +1,9 @@
-package hu.telekom.lwi.plugin.log;
+package hu.telekom.lwi.plugin.data;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import hu.telekom.lwi.plugin.log.LwiLogAttribute;
 import io.undertow.server.HttpServerExchange;
 
 public class LwiCall {
@@ -11,15 +12,16 @@ public class LwiCall {
 	private static final String RESPONSE_LOG_FORMAT = "[%s][%s][%s < %s.%s]";
 	private static final String DURATION_LOG_FORMAT = "[call: %sms, servicecall: %sms, overhead: %sms]";
 	private static final String TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss,SSS";
-
+	private static final String PROVIDER_SERVICE_SEPARATOR = "/";
+	
 	private String lwiRequestId;
 	private String caller;
 	private String provider;
 	private String operation;
 	private long requestStarted;
-	private long requestFinished;
-	private long responseStarted;
-	
+	private long serviceCalled;
+	private long serviceReturned;
+	private boolean partial = false;
 	
 	public LwiCall(final HttpServerExchange exchange, final String lwiRequestId) {
 		this.requestStarted = System.currentTimeMillis();
@@ -46,6 +48,10 @@ public class LwiCall {
 		}
 	}
 
+	public String getLwiRequestId() {
+		return lwiRequestId;
+	}
+
 	public String getCaller() {
 		return caller;
 	}
@@ -58,16 +64,20 @@ public class LwiCall {
 		return operation;
 	}
 	
+	public String getAccessPoint() {
+		return provider + PROVIDER_SERVICE_SEPARATOR + operation;
+	}
+	
 	public long getRequestStarted() {
 		return requestStarted;
 	}
 
-	public long getRequestFinished() {
-		return requestFinished;
+	public boolean isPartial() {
+		return partial;
 	}
 
-	public long getResponseStarted() {
-		return responseStarted;
+	public void setPartial() {
+		this.partial = true;
 	}
 
 	public String toRequestLog() {
@@ -78,9 +88,9 @@ public class LwiCall {
 		return String.format(RESPONSE_LOG_FORMAT, lwiRequestId, getTimestamp(timeInMillis), caller, provider, operation);
 	}
 	
-	public String toDurationLog(long requestFinished, long responseStarted, long responseFinished) {
+	public String toDurationLog(long responseFinished) {
 		long call = responseFinished - requestStarted;
-		long service = responseStarted - requestFinished;
+		long service = serviceReturned - serviceCalled;
 		long overhead = call - (service > 0 ? service : 0);
 		return String.format(DURATION_LOG_FORMAT, call>0?Long.toString(call):LwiLogAttribute.EMPTY, service>0?Long.toString(service):LwiLogAttribute.EMPTY, overhead>0?Long.toString(overhead):LwiLogAttribute.EMPTY);
 	}
@@ -90,12 +100,12 @@ public class LwiCall {
 		return sdf.format(new Date(timeInMillis));
 	}
 	
-	public void setRequestFinished() {
-		this.requestFinished = System.currentTimeMillis();
+	public void setServiceCalled() {
+		this.serviceCalled = System.currentTimeMillis();
 	}
 
-	public void setResponseStarted() {
-		this.responseStarted = System.currentTimeMillis();
+	public void setServiceReturned() {
+		this.serviceReturned = System.currentTimeMillis();
 	}
 
 }

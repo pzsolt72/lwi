@@ -9,7 +9,6 @@ import java.util.ResourceBundle;
 import java.util.Set;
 
 import org.jboss.logging.Logger;
-import org.wildfly.extension.undertow.security.JAASIdentityManagerImpl;
 
 import hu.telekom.lwi.plugin.LwiHandler;
 import hu.telekom.lwi.plugin.util.LwiResourceBundleUtil;
@@ -30,32 +29,30 @@ import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 
 public class LwiSecurityHandler implements HttpHandler, IdentityManager {
-	
-	public static final String PROVIDER_SERVICE_SEPARATOR = "/";
-
-	
 
 	private static final Logger log = Logger.getLogger(LwiSecurityHandler.class);
+	
 	private static final String REALM = "ApplicationRealm";
 	private static ResourceBundle applicationUsers = LwiResourceBundleUtil.getJbossConfig("application-users.properties");
 	private static ResourceBundle applicationRoles = LwiResourceBundleUtil.getJbossConfig("application-roles.properties");
 	
+	private HttpHandler next;
 	private SecurityInitialHandler initialHandler;
 	private AuthenticationConstraintHandler constraintHandler;
 	private AuthenticationMechanismsHandler mechanismsHandler;
 	private AuthenticationCallHandler authenticationCallHandler;
+
 	private String lwiRequestId;
-	private String provider;
-	private String calledService;
+	private String accessPoint;
 	private boolean isIdentityAssertion = false;
 	
 	public LwiSecurityHandler(HttpHandler next) {
+		this.next = next;
 		List<AuthenticationMechanism> mechanisms = new ArrayList<AuthenticationMechanism>();
 		
 		mechanisms.add(new BasicAuthenticationMechanism(REALM));
 //		mechanisms.add(new DigestAuthenticationMechanism(REALM, REALM, "DIGEST"));
 		mechanisms.add(new ClientCertAuthenticationMechanism());
-
 		mechanisms.add(new LwiCertHeaderAuthMechanism());
 		
 		authenticationCallHandler = new AuthenticationCallHandler(next);
@@ -66,28 +63,28 @@ public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 	
 	@Override
 	public void handleRequest(HttpServerExchange exchange) throws Exception {
-		
-		
-		
 		lwiRequestId = LwiHandler.getLwiRequestId(exchange);
+		accessPoint = LwiHandler.getLwiCall(exchange).getAccessPoint();
 		
-		log.info(String.format("[%s] LwiSecurityHandler.handleRequest invoked",lwiRequestId));
+		log.info(String.format("[%s] LwiSecurityHandler - security check started (%s)...", lwiRequestId, Boolean.toString(isIdentityAssertion)));
 		
-		provider = LwiHandler.getProvider(exchange);
-		calledService = LwiHandler.getCalledService(exchange);
-		
-		initialHandler.handleRequest(exchange);
+		if (isIdentityAssertion) {
+			initialHandler.handleRequest(exchange);
+		} else {
+			log.info(String.format("[%s] LwiSecurityHandler - ended without security check.", lwiRequestId));
+			next.handleRequest(exchange);
+		}
 	}
 
 	@Override
 	public Account verify(Account account) {
-		log.debug(String.format("[%s] LwiSecurityHandler.verify invoked - "+account,lwiRequestId));
+		log.debug(String.format("[%s] LwiSecurityHandler - verify account", lwiRequestId));
 		return account;
 	}
 
 	@Override
 	public Account verify(final String userId, final Credential credential) {
-		log.debug(String.format("[%s] LwiSecurityHandler.verify invoked - "+userId+" - "+credential+ " access to:" + provider + PROVIDER_SERVICE_SEPARATOR + calledService,lwiRequestId));
+		log.debug(String.format("[%s] LwiSecurityHandler - verify - %s - %s access to: %s", lwiRequestId, userId, credential.getClass().getSimpleName(), accessPoint));
 		
 		if (credential != null) {
 			try {
@@ -100,9 +97,8 @@ public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 				}
 				boolean authorized = false;
 				if (authenticated) {
-					String accessto = provider + PROVIDER_SERVICE_SEPARATOR + calledService;
 					for (String role : applicationRoles.getString(userId).split(",")) {						
-						if ( accessto.equals(role) ) {
+						if (accessPoint.equals(role)) {
 							authorized = true;
 						}
 					}					
@@ -133,13 +129,13 @@ public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 					};
 				} else {
 					if ( !authenticated && !authorized )
-						log.warn(String.format("[%s] LwiSecurityHandler - authentication failed for user (%s)...", lwiRequestId, userId));
+						log.warn(String.format("[%s] LwiSecurityHandler - authentication failed for user (%s)!", lwiRequestId, userId));
 					else
-						log.warn(String.format("[%s] LwiSecurityHandler - authorization failed for user (%s) access to (%s/%s)...", lwiRequestId, userId, provider, calledService ));
+						log.warn(String.format("[%s] LwiSecurityHandler - authorization failed for user (%s) access to (%s)!", lwiRequestId, userId, accessPoint));
 				}
 			} catch (MissingResourceException e) {
 				// couldn't find user in properties
-				log.warn(String.format("[%s] LwiSecurityHandler - not found user sent by client (%s)...", lwiRequestId, userId));
+				log.warn(String.format("[%s] LwiSecurityHandler - not found user sent by client (%s)!", lwiRequestId, userId));
 			}
 		}
 		return null;

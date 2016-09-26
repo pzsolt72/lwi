@@ -12,8 +12,8 @@ import javax.xml.stream.events.XMLEvent;
 
 import org.jboss.logging.Logger;
 
+import hu.telekom.lwi.plugin.data.LwiRequestData;
 import hu.telekom.lwi.plugin.log.LwiLogAttribute;
-import hu.telekom.lwi.plugin.log.LwiRequestData;
 import io.undertow.server.HttpServerExchange;
 
 public class LwiLogAttributeUtil {
@@ -46,7 +46,7 @@ public class LwiLogAttributeUtil {
 				}
 			}
 		} catch (Exception e) {
-			log.error("LwiLogAttributeUtil > Invalid soap xml! - Cannot get request attributes from message.", e);
+			log.error("LwiLogAttributeUtil - invalid soap xml - Cannot get request attributes from message.");
 		}
 	}
 
