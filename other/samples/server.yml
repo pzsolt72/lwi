@@ -1,0 +1,14 @@
+# lwi server section
+logger: 
+    - name:       messageLog
+      logfile:    mlog.log
+      rollsize:   10M 
+      rollbackup: 20
+    - name:       appLog
+      logfile:    mlog.log
+      rollbackup: 20
+      rollsize:   10M 
+
+load:
+    - maxRequests: 100
+    - queueSize: 100

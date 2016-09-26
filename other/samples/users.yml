@@ -1,0 +1,8 @@
+# lwi consumers 
+consumers:
+    - name:       test1
+      password:   qwertz
+    - name:       test2
+      password:   qwertz
+    - name:       test3
+      password:   qwertz  
