@@ -1,0 +1,12 @@
+service:
+    - name:               lwi-estore-qpdl
+	  uri:                lwi/cnr/getMsisdn
+      maxRequests:        20
+      queueLength:        10
+      validationType:     CTX
+      logLevel:           FULL
+      skipAuthentication: false
+      backEndServiceUrl:  http://localhost:8091/LwiMockTargets/Qpdl
+      backEndConnections: 10
+      requestTimeout:     10000
+      consumers:          [test1,test2,test3]
