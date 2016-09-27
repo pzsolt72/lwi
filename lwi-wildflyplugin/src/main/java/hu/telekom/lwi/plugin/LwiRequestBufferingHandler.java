@@ -102,7 +102,7 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 									ByteBuffer b = buffer.getBuffer();
 									r = channel.read(b);
 									if (r == -1) { // TODO: listener read
-										log.info(String.format("[%s] LwiRequestBufferingHandler - (event) read finished (buffered data: %d)", lwiRequestId, b.position()));
+										log.info(String.format("[%s] LwiRequestBufferingHandler - (event) read finished (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
 										if (b.position() == 0) {
 											buffer.close();
 										} else {
@@ -118,7 +118,7 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 										log.info(String.format("[%s] LwiRequestBufferingHandler - (event) read empty", lwiRequestId));
 										return;
 									} else if (!b.hasRemaining()) {
-										log.info(String.format("[%s] LwiRequestBufferingHandler - (event) buffer full", lwiRequestId));
+										log.info(String.format("[%s] LwiRequestBufferingHandler - (event) buffer full (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
 										if (readIntoBuffer(lwiRequestId, b, bufferedData, buffer, readBuffers, exchange, true)) {
 											readBuffers++;
 										} else {
