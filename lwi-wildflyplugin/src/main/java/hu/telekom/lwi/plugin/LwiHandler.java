@@ -75,7 +75,7 @@ public class LwiHandler implements HttpHandler {
 	@Override
 	public void handleRequest(HttpServerExchange exchange) throws Exception {
 
-		try {
+		try {			
 			
 			String lwiRequestId = generateLwiReqId();
 
@@ -90,10 +90,6 @@ public class LwiHandler implements HttpHandler {
 				validateHandlerParameters();
 			}
 
-			if (requestLimitHandler == null) {
-				requestLimitHandler = new RequestLimit(maxRequests, queueSize);
-				requestLimitHandler.setFailureHandler(new LwiRequestLimitExceededHandler(maxRequests, queueSize));
-			}
 			
 			boolean requestBuffering = validationType != LwiValidationType.NO;
 
@@ -103,17 +99,27 @@ public class LwiHandler implements HttpHandler {
 			LwiProxyHandler proxyhandler = new LwiProxyHandler(backEndServiceUrl, backEndConnections, requestTimeout);
 			nnnext = proxyhandler;
 
+			// validation
 			LwiValidationHandler validationHandler = new LwiValidationHandler(nnnext, validationType, backEndServiceUrl + "?WSDL");
 			nnnext = validationHandler;
 
+			// log
 			LwiLogHandler lwiLogHandler = new LwiLogHandler(nnnext, logLevel);
 			nnnext = lwiLogHandler;
 
+			// request buffer
 			LwiRequestBufferingHandler lwiMessageHandler = new LwiRequestBufferingHandler(nnnext, bufferSize, requestBuffering);
 			nnnext = lwiMessageHandler;
-			
+				
+			// security
 			LwiSecurityHandler securityHandler = new LwiSecurityHandler(nnnext);			
 			nnnext = securityHandler;
+
+			// request limit
+			if (requestLimitHandler == null) {
+				requestLimitHandler = new RequestLimit(maxRequests, queueSize);
+				requestLimitHandler.setFailureHandler(new LwiRequestLimitExceededHandler(maxRequests, queueSize));
+			}
 			
 			requestLimitHandler.handleRequest(exchange, nnnext);
 			
