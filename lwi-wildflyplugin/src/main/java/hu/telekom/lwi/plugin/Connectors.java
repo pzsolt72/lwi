@@ -32,10 +32,12 @@ public class Connectors extends io.undertow.server.Connectors {
         exchange.addExchangeCompleteListener(new ExchangeCompletionListener() {
             @Override
             public void exchangeEvent(HttpServerExchange exchange, NextListener nextListener) {
+            	String lwiRequestId = LwiHandler.getLwiRequestId(exchange);
+            	System.out.println("### Buffered data closed for exchange: "+lwiRequestId);
                 PooledByteBuffer[] bufs = exchange.getAttachment(BUFFERED_REQUEST_DATA);
                 if (bufs != null) {
                     for (PooledByteBuffer i : bufs) {
-                        if(i != null) {
+                        if(i != null && i.isOpen()) {
                             i.close();
                         }
                     }

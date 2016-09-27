@@ -47,12 +47,8 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 		log.info(String.format("[%s] LwiRequestBufferingHandler - start request buffering (active: %s)...", lwiRequestId, Boolean.toString(requestBuffering)));
 
 		if (requestBuffering) {
-			try {
-				bufferRequest(lwiRequestId, exchange);
-			} catch (IOException e) {
-				log.info(String.format("[%s] LwiRequestBufferingHandler - io exception ", lwiRequestId));
-				throw e;
-			}
+
+			bufferRequest(lwiRequestId, exchange);
 			
 			LwiRequestData requestData = LwiHandler.getLwiRequestData(exchange);
 			String request = LwiHandler.getLwiRequest(exchange);
@@ -71,100 +67,118 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 	@SuppressWarnings("resource") // INFO: it will be closed by Connectors.removeBufferedRequest
 	public void bufferRequest(String lwiRequestId, final HttpServerExchange exchange) throws Exception {
 		if (!exchange.isRequestComplete() && !HttpContinue.requiresContinueResponse(exchange.getRequestHeaders())) {
+			log.debug(String.format("[%s] LwiRequestBufferingHandler - buffer request", lwiRequestId));
+
 			final StreamSourceChannel channel = exchange.getRequestChannel();
-			int readBuffers = 0;
-			final PooledByteBuffer[] bufferedData = new PooledByteBuffer[maxBuffers];
-			PooledByteBuffer buffer = exchange.getConnection().getByteBufferPool().allocate();
-
-			log.info(String.format("[%s] LwiRequestBufferingHandler - handleRead", lwiRequestId));
-			do {
-				int r;
-				ByteBuffer b = buffer.getBuffer();
-				r = channel.read(b);
-				if (r == -1) { // TODO: listener read
-					log.info(String.format("[%s] LwiRequestBufferingHandler - read finished (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
-					if (b.position() == 0) {
-						log.info(String.format("[%s] LwiRequestBufferingHandler - read empty", lwiRequestId));
-						buffer.close();
+            int readBuffers = 0;
+            final PooledByteBuffer[] bufferedData = new PooledByteBuffer[maxBuffers];
+			
+            try {
+	            PooledByteBuffer buffer = exchange.getConnection().getByteBufferPool().allocate();
+	            do {
+	                int r;
+	                ByteBuffer b = buffer.getBuffer();
+	                r = channel.read(b);
+	                if (r == -1) { //TODO: listener read
+						log.debug(String.format("[%s] LwiRequestBufferingHandler - read finished (buffered data: %d)", lwiRequestId, b.position()));
+	                    if (b.position() == 0) {
+	                        buffer.close();
+	                    } else {
+	                        b.flip();
+	                        bufferedData[readBuffers] = buffer;
+	                    }
+	                    break;
+	                } else if(r == 0) {
+						log.debug(String.format("[%s] LwiRequestBufferingHandler - read empty", lwiRequestId));
+	                    final PooledByteBuffer finalBuffer = buffer;
+	                    final int finalReadBuffers = readBuffers;
+	                    channel.getReadSetter().set(new ChannelListener<StreamSourceChannel>() {
+	
+	                        PooledByteBuffer buffer = finalBuffer;
+	                        int readBuffers = finalReadBuffers;
+	                        @Override
+	                        public void handleEvent(StreamSourceChannel channel) {
+	                            try {
+	                                do {
+	                                    int r;
+	                                    ByteBuffer b = buffer.getBuffer();
+	                                    r = channel.read(b);
+	                                    if (r == -1) { //TODO: listener read
+	                    					log.debug(String.format("[%s] LwiRequestBufferingHandler - read finished (buffered data: %d)", lwiRequestId, b.position()));
+	                                        if (b.position() == 0) {
+	                                            buffer.close();
+	                                        } else {
+	                                            b.flip();
+	                                            bufferedData[readBuffers] = buffer;
+	                                        }
+	                                        Connectors.ungetRequestBytes(exchange, bufferedData);
+	                                        Connectors.resetRequestChannel(exchange);
+	                                        Connectors.executeRootHandler(next, exchange);
+	                                        channel.getReadSetter().set(null);
+	                                        return;
+	                                    } else if (r == 0) {
+	                    					log.debug(String.format("[%s] LwiRequestBufferingHandler - read empty", lwiRequestId));
+	                                        return;
+	                                    } else if (!b.hasRemaining()) {
+	                    					log.debug(String.format("[%s] LwiRequestBufferingHandler - buffer full (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
+	                                        b.flip();
+	                                        bufferedData[readBuffers++] = buffer;
+	                                        if (readBuffers == maxBuffers) {
+	                                        	LwiHandler.getLwiCall(exchange).setPartial();
+	                                            Connectors.ungetRequestBytes(exchange, bufferedData);
+	                                            Connectors.resetRequestChannel(exchange);
+	                                            Connectors.executeRootHandler(next, exchange);
+	                                            channel.getReadSetter().set(null);
+	                                            return;
+	                                        }
+	                                        buffer = exchange.getConnection().getByteBufferPool().allocate();
+	                    				} else {
+	                    					log.debug(String.format("[%s] LwiRequestBufferingHandler - read (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
+	                    				}
+	                                } while (true);
+	                            } catch (IOException e) {
+	                                UndertowLogger.REQUEST_IO_LOGGER.ioException(e);
+	                                for(int i = 0; i < bufferedData.length; ++i) {
+	                                    IoUtils.safeClose(bufferedData[i]);
+	                                }
+	                                exchange.endExchange();
+	                            }
+	                        }
+	                    });
+	                    channel.resumeReads();
+	                    return;
+	                } else if (!b.hasRemaining()) {
+						log.debug(String.format("[%s] LwiRequestBufferingHandler - buffer full (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
+	                    b.flip();
+	                    bufferedData[readBuffers++] = buffer;
+	                    if(readBuffers == maxBuffers) {
+	                    	LwiHandler.getLwiCall(exchange).setPartial();
+	                        break;
+	                    }
+	                    buffer = exchange.getConnection().getByteBufferPool().allocate();
 					} else {
-						b.flip();
-						bufferedData[readBuffers] = buffer;
+						log.debug(String.format("[%s] LwiRequestBufferingHandler - read (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
 					}
-					break;
-				} else if (r == 0) {
-					final PooledByteBuffer finalBuffer = buffer;
-					final int finalReadBuffers = readBuffers;
-					channel.getReadSetter().set(new ChannelListener<StreamSourceChannel>() {
-
-						PooledByteBuffer buffer = finalBuffer;
-						int readBuffers = finalReadBuffers;
-
-						@Override
-						public void handleEvent(StreamSourceChannel channel) {
-							try {
-								do {
-									int r;
-									ByteBuffer b = buffer.getBuffer();
-									r = channel.read(b);
-									if (r == -1) { // TODO: listener read
-										log.info(String.format("[%s] LwiRequestBufferingHandler - (event) read finished (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
-										if (b.position() == 0) {
-											buffer.close();
-										} else {
-											b.flip();
-											bufferedData[readBuffers] = buffer;
-										}
-										Connectors.ungetRequestBytes(exchange, bufferedData);
-										Connectors.resetRequestChannel(exchange);
-										Connectors.executeRootHandler(next, exchange);
-										channel.getReadSetter().set(null);
-										return;
-									} else if (r == 0) {
-										log.info(String.format("[%s] LwiRequestBufferingHandler - (event) read empty", lwiRequestId));
-										return;
-									} else if (!b.hasRemaining()) {
-										log.info(String.format("[%s] LwiRequestBufferingHandler - (event) buffer full (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
-										if (readIntoBuffer(lwiRequestId, b, bufferedData, buffer, readBuffers, exchange, true)) {
-											readBuffers++;
-										} else {
-											channel.getReadSetter().set(null);
-											return;
-										}
-									} else {
-										log.info(String.format("[%s] LwiRequestBufferingHandler - (event) read (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
-									}
-								} while (true);
-							} catch (IOException e) {
-								UndertowLogger.REQUEST_IO_LOGGER.ioException(e);
-								for (int i = 0; i < bufferedData.length; ++i) {
-									IoUtils.safeClose(bufferedData[i]);
-								}
-								exchange.endExchange();
-							}
-						}
-					});
-					channel.resumeReads();
-				} else if (!b.hasRemaining()) {
-					log.info(String.format("[%s] LwiRequestBufferingHandler - buffer full (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
-					if (readIntoBuffer(lwiRequestId, b, bufferedData, buffer, readBuffers, exchange, false)) {
-						readBuffers++;
-					} else {
-						break;
-					}
-				} else {
-					log.info(String.format("[%s] LwiRequestBufferingHandler - read (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
+	            } while (true);
+	            Connectors.ungetRequestBytes(exchange, bufferedData);
+	            Connectors.resetRequestChannel(exchange);
+			} catch (IOException e) {
+				log.info(String.format("[%s] LwiRequestBufferingHandler - io exception ", lwiRequestId));
+				UndertowLogger.REQUEST_IO_LOGGER.ioException(e);
+				for (int i = 0; i < bufferedData.length; ++i) {
+					IoUtils.safeClose(bufferedData[i]);
 				}
-			} while (true);
-			log.info(String.format("[%s] LwiRequestBufferingHandler - done ", lwiRequestId));
-			Connectors.ungetRequestBytes(exchange, bufferedData);
-			Connectors.resetRequestChannel(exchange);
+				exchange.endExchange();
+			}
 		}
 	}
 	
 
 	
+	
+	
+	
 	private void handleRead(String lwiRequestId, final StreamSourceChannel channel, final PooledByteBuffer[] bufferedData, PooledByteBuffer buffer, HttpServerExchange exchange, boolean fromEvent) {
-		log.info(String.format("[%s] LwiRequestBufferingHandler - handleRead(fromEvent: %s)", lwiRequestId, Boolean.toString(fromEvent)));
 		try {
 			int readBuffers = 0;
 			do {
@@ -172,7 +186,7 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 				ByteBuffer b = buffer.getBuffer();
 				r = channel.read(b);
 				if (r == -1) {
-					log.info(String.format("[%s] LwiRequestBufferingHandler - read finished (buffered data: %d)", lwiRequestId, b.position()));
+					log.debug(String.format("[%s] LwiRequestBufferingHandler - read finished (buffered data: %d)", lwiRequestId, b.position()));
 					if (b.position() == 0) {
 						buffer.close();
 					} else {
@@ -186,7 +200,7 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 					}
 					return;
 				} else if (r == 0) {
-					log.info(String.format("[%s] LwiRequestBufferingHandler - read empty", lwiRequestId));
+					log.debug(String.format("[%s] LwiRequestBufferingHandler - read empty", lwiRequestId));
 					if (!fromEvent) {
 						channel.getReadSetter().set(new ChannelListener<StreamSourceChannel>() {
 
@@ -199,7 +213,7 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 						return;
 					}
 				} else if (!b.hasRemaining()) {
-					log.info(String.format("[%s] LwiRequestBufferingHandler - buffer full", lwiRequestId));
+					log.debug(String.format("[%s] LwiRequestBufferingHandler - buffer full", lwiRequestId));
 					if (readIntoBuffer(lwiRequestId, b, bufferedData, buffer, readBuffers, exchange, true)) {
 						readBuffers++;
 					} else {
@@ -209,11 +223,11 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 						return;
 					}
 				} else {
-					log.info(String.format("[%s] LwiRequestBufferingHandler - read (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
+					log.debug(String.format("[%s] LwiRequestBufferingHandler - read (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
 				}
 			} while (true);
 		} catch (IOException e) {
-			log.info(String.format("[%s] LwiRequestBufferingHandler - io exception ", lwiRequestId));
+			log.debug(String.format("[%s] LwiRequestBufferingHandler - io exception ", lwiRequestId));
 			UndertowLogger.REQUEST_IO_LOGGER.ioException(e);
 			for (int i = 0; i < bufferedData.length; ++i) {
 				IoUtils.safeClose(bufferedData[i]);
