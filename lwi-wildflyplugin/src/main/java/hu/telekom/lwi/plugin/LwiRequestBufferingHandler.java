@@ -71,7 +71,7 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 			final PooledByteBuffer[] bufferedData = new PooledByteBuffer[maxBuffers];
 			PooledByteBuffer buffer = exchange.getConnection().getByteBufferPool().allocate();
 
-			log.info(String.format("[%s] LwiRequestBufferingHandler - handleRead(fromEvent: %s)", lwiRequestId, Boolean.toString(false)));
+			log.info(String.format("[%s] LwiRequestBufferingHandler - handleRead", lwiRequestId));
 			do {
 				int r;
 				ByteBuffer b = buffer.getBuffer();
@@ -125,6 +125,8 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 											channel.getReadSetter().set(null);
 											return;
 										}
+									} else {
+										log.info(String.format("[%s] LwiRequestBufferingHandler - (event) read (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
 									}
 								} while (true);
 							} catch (IOException e) {
@@ -144,6 +146,8 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 					} else {
 						break;
 					}
+				} else {
+					log.info(String.format("[%s] LwiRequestBufferingHandler - read (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
 				}
 			} while (true);
 			Connectors.ungetRequestBytes(exchange, bufferedData);
