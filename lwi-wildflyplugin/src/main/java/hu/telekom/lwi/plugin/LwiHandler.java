@@ -112,7 +112,7 @@ public class LwiHandler implements HttpHandler {
 			nnnext = lwiMessageHandler;
 				
 			// security
-			LwiSecurityHandler securityHandler = new LwiSecurityHandler(nnnext);			
+			LwiSecurityHandler securityHandler = new LwiSecurityHandler(nnnext, skipAuthentication);			
 			nnnext = securityHandler;
 
 			// request limit
