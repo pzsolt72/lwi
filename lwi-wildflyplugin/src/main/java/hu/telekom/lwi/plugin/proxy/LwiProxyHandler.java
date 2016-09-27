@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jboss.logging.Logger;
-import org.xnio.ssl.XnioSsl;
 
 import hu.telekom.lwi.plugin.Connectors;
 import hu.telekom.lwi.plugin.LwiHandler;
