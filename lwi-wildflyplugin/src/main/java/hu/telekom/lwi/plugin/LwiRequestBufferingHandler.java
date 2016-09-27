@@ -47,7 +47,12 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 		log.info(String.format("[%s] LwiRequestBufferingHandler - start request buffering (active: %s)...", lwiRequestId, Boolean.toString(requestBuffering)));
 
 		if (requestBuffering) {
-			bufferRequest(lwiRequestId, exchange);
+			try {
+				bufferRequest(lwiRequestId, exchange);
+			} catch (IOException e) {
+				log.info(String.format("[%s] LwiRequestBufferingHandler - io exception ", lwiRequestId));
+				throw e;
+			}
 			
 			LwiRequestData requestData = LwiHandler.getLwiRequestData(exchange);
 			String request = LwiHandler.getLwiRequest(exchange);
@@ -77,7 +82,7 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 				ByteBuffer b = buffer.getBuffer();
 				r = channel.read(b);
 				if (r == -1) { // TODO: listener read
-					log.info(String.format("[%s] LwiRequestBufferingHandler - read finished (buffered data: %d)", lwiRequestId, b.position()));
+					log.info(String.format("[%s] LwiRequestBufferingHandler - read finished (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
 					if (b.position() == 0) {
 						log.info(String.format("[%s] LwiRequestBufferingHandler - read empty", lwiRequestId));
 						buffer.close();
@@ -140,7 +145,7 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 					});
 					channel.resumeReads();
 				} else if (!b.hasRemaining()) {
-					log.info(String.format("[%s] LwiRequestBufferingHandler - buffer full", lwiRequestId));
+					log.info(String.format("[%s] LwiRequestBufferingHandler - buffer full (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
 					if (readIntoBuffer(lwiRequestId, b, bufferedData, buffer, readBuffers, exchange, false)) {
 						readBuffers++;
 					} else {
@@ -150,6 +155,7 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 					log.info(String.format("[%s] LwiRequestBufferingHandler - read (bytes: %d, buffer: %d)", lwiRequestId, r, b.position()));
 				}
 			} while (true);
+			log.info(String.format("[%s] LwiRequestBufferingHandler - done ", lwiRequestId));
 			Connectors.ungetRequestBytes(exchange, bufferedData);
 			Connectors.resetRequestChannel(exchange);
 		}
@@ -207,6 +213,7 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 				}
 			} while (true);
 		} catch (IOException e) {
+			log.info(String.format("[%s] LwiRequestBufferingHandler - io exception ", lwiRequestId));
 			UndertowLogger.REQUEST_IO_LOGGER.ioException(e);
 			for (int i = 0; i < bufferedData.length; ++i) {
 				IoUtils.safeClose(bufferedData[i]);
@@ -219,6 +226,7 @@ public class LwiRequestBufferingHandler implements HttpHandler {
 		b.flip();
 		bufferedData[readBuffers++] = buffer;
 		if (readBuffers == maxBuffers) {
+			log.info(String.format("[%s] LwiRequestBufferingHandler - maxbuffers reached", lwiRequestId));
 			LwiHandler.getLwiCall(exchange).setPartial();
 			if (fromEvent) {
 				suspendRead(lwiRequestId, bufferedData, exchange);
