@@ -44,9 +44,20 @@ public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 
 	private String lwiRequestId;
 	private String accessPoint;
-	private boolean isIdentityAssertion = false;
+	private boolean skipAuthentication = false;
+	
+	public LwiSecurityHandler(HttpHandler next, boolean skipAuthentication ) {
+		
+		init(next);
+		this.skipAuthentication = skipAuthentication;
+		
+	}
 	
 	public LwiSecurityHandler(HttpHandler next) {
+		init(next);
+	}
+
+	private void init(HttpHandler next) {
 		this.next = next;
 		List<AuthenticationMechanism> mechanisms = new ArrayList<AuthenticationMechanism>();
 		
@@ -66,9 +77,9 @@ public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 		lwiRequestId = LwiHandler.getLwiRequestId(exchange);
 		accessPoint = LwiHandler.getLwiCall(exchange).getAccessPoint();
 		
-		log.info(String.format("[%s] LwiSecurityHandler - security check started (%s)...", lwiRequestId, Boolean.toString(isIdentityAssertion)));
+		log.info(String.format("[%s] LwiSecurityHandler - security check started. skipping: (%s)...", lwiRequestId, Boolean.toString(skipAuthentication)));
 		
-		if (isIdentityAssertion) {
+		if (!skipAuthentication) {
 			initialHandler.handleRequest(exchange);
 		} else {
 			log.info(String.format("[%s] LwiSecurityHandler - ended without security check.", lwiRequestId));
@@ -100,6 +111,7 @@ public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 					for (String role : applicationRoles.getString(userId).split(",")) {						
 						if (accessPoint.equals(role)) {
 							authorized = true;
+							break;
 						}
 					}					
 				}
@@ -146,5 +158,15 @@ public class LwiSecurityHandler implements HttpHandler, IdentityManager {
 		log.debug(String.format("[%s] LwiSecurityHandler.verify invoked - "+credential,lwiRequestId));
 		return verify("LWI_ADMIN", credential);
 	}
+
+	public boolean isSkipAuthentication() {
+		return skipAuthentication;
+	}
+
+	public void setSkipAuthentication(boolean skipAuthentication) {
+		this.skipAuthentication = skipAuthentication;
+	}
+	
+	
 
 }

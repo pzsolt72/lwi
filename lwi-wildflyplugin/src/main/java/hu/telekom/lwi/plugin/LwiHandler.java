@@ -57,6 +57,7 @@ public class LwiHandler implements HttpHandler {
 	private String backEndServiceUrl;
 	private Integer backEndConnections;
 	private Integer requestTimeout;
+	private Integer bufferSize=20;
 
 
 	/**
@@ -70,21 +71,6 @@ public class LwiHandler implements HttpHandler {
 		this.next = next;
 	}
 
-	public LwiHandler(HttpHandler next, Integer maxRequests, Integer queueSize, LwiLogLevel logLevel, LwiValidationType validationType,
-			Boolean skipAuthentication) {
-
-		log.debug("Init LwiHandler");
-
-		this.next = next;
-		this.maxRequests = maxRequests;
-		this.queueSize = queueSize;
-		this.skipAuthentication = skipAuthentication;
-		this.logLevel = logLevel;
-		this.validationType = validationType;
-
-		validateHandlerParameters();
-
-	}
 
 	@Override
 	public void handleRequest(HttpServerExchange exchange) throws Exception {
@@ -96,9 +82,9 @@ public class LwiHandler implements HttpHandler {
 			exchange.getRequestHeaders().add(new HttpString(LWI_REQUEST_ID_KEY), lwiRequestId);
 
 			log.info(String.format(
-					"[%s] LwiHandler - start handle %s maxRequestss: %s, queueSize: %s, logLevel: %s,  validationType: %s, skipAuth: %s, requestTimeout: %s" ,
+					"[%s] LwiHandler - start handle %s maxRequestss: %s, queueSize: %s, logLevel: %s,  validationType: %s, skipAuth: %s, requestTimeout: %s, bufferSize: %s" ,
 					lwiRequestId, exchange.getRequestURL(), maxRequests, queueSize, logLevel, validationType,
-					skipAuthentication, requestTimeout));
+					skipAuthentication, requestTimeout, bufferSize));
 
 			if (!parametersAreValidated) {
 				validateHandlerParameters();
@@ -123,7 +109,7 @@ public class LwiHandler implements HttpHandler {
 			LwiLogHandler lwiLogHandler = new LwiLogHandler(nnnext, logLevel);
 			nnnext = lwiLogHandler;
 
-			LwiRequestBufferingHandler lwiMessageHandler = new LwiRequestBufferingHandler(nnnext, 2, requestBuffering);
+			LwiRequestBufferingHandler lwiMessageHandler = new LwiRequestBufferingHandler(nnnext, bufferSize, requestBuffering);
 			nnnext = lwiMessageHandler;
 			
 			LwiSecurityHandler securityHandler = new LwiSecurityHandler(nnnext);			
@@ -234,6 +220,14 @@ public class LwiHandler implements HttpHandler {
 		this.requestTimeout = requestTimeout;
 	}
 
+	public Integer getBufferSize() {
+		return bufferSize;
+	}
+
+	public void setBufferSize(Integer bufferSize) {
+		this.bufferSize = bufferSize;
+	}
+
 	private void validateHandlerParameters() {
 		if (maxRequests == null) {
 			throw new RuntimeException("Set the LwiHandler.maxRequests value properly! e.g.:  20");
@@ -297,72 +291,5 @@ public class LwiHandler implements HttpHandler {
         return String.format(template, provider, service, lwiId, msg);
     }
 
-	
-	
-	
-	/*
-	 * EZ MÉG NEM MŰKÖDIK A CONFIGBÓL!!!
-	 */
-
-	public static final class Wrapper implements HandlerWrapper {
-
-		private Integer maxRequests;
-		private Integer queueSize;
-		private String logLevel;
-		private String validationType;
-		private Boolean skipAuthentication;
-
-		public Wrapper(Integer maxRequests, Integer queueSize, String logLevel, String validationType, Boolean skipAuthentication) {
-			super();
-			this.maxRequests = maxRequests;
-			this.queueSize = queueSize;
-			this.logLevel = logLevel;
-			this.validationType = validationType;
-			this.skipAuthentication = skipAuthentication;
-		}
-
-		@Override
-		public HttpHandler wrap(HttpHandler exchange) {
-			return new LwiHandler(exchange, maxRequests, queueSize, LwiLogLevel.valueOf(logLevel), LwiValidationType.valueOf(validationType), skipAuthentication);
-		}
-
-	}
-
-	public static final class Builder implements HandlerBuilder {
-
-		@Override
-		public String name() {
-			return "lwi";
-		}
-
-		@Override
-		public Map<String, Class<?>> parameters() {
-			Map<String, Class<?>> ret = new HashMap<>();
-			ret.put("maxRequests", Integer.class);
-			ret.put("queueSize", Integer.class);
-			ret.put("logLevel", String.class);
-			ret.put("validationType", String.class);
-			ret.put("skipAuthentication", String.class);
-
-			return ret;
-		}
-
-		@Override
-		public Set<String> requiredParameters() {
-			return new HashSet<>(Arrays.asList("maxRequests", "queueSize", "logLevel", "validationType"));
-		}
-
-		@Override
-		public String defaultParameter() {
-			return null;
-		}
-
-		@Override
-		public HandlerWrapper build(Map<String, Object> config) {
-			return new Wrapper((Integer) config.get("maxRequests"), (Integer) config.get("queueSize"),
-					(String) config.get("logLevel"), (String) config.get("validationType"),
-					(Boolean) config.get("skipAuthentication"));
-		}
-	}
 
 }

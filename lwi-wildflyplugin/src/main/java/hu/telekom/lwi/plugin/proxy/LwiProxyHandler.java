@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jboss.logging.Logger;
+import org.xnio.ssl.XnioSsl;
 
 import hu.telekom.lwi.plugin.Connectors;
 import hu.telekom.lwi.plugin.LwiHandler;
@@ -64,7 +65,7 @@ public class LwiProxyHandler implements HttpHandler, ExchangeCompletionListener 
 		if (retval == null) {
 			synchronized (MUTEX) {
 				retval = new LoadBalancingProxyClient();
-				try {
+				try {									
 					retval.addHost(new URI(backEndServiceUrl)).setConnectionsPerThread(backEndConnections);
 					proxyMap.put(backEndServiceUrl, retval);
 				} catch (URISyntaxException e) {
