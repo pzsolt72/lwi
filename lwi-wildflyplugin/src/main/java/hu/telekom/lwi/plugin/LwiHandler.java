@@ -19,12 +19,14 @@ import hu.telekom.lwi.plugin.proxy.LwiProxyHandler;
 import hu.telekom.lwi.plugin.security.LwiSecurityHandler;
 import hu.telekom.lwi.plugin.validation.LwiValidationHandler;
 import hu.telekom.lwi.plugin.validation.LwiValidationType;
+import io.undertow.connector.PooledByteBuffer;
 import io.undertow.server.HandlerWrapper;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.RequestLimit;
 import io.undertow.server.handlers.builder.HandlerBuilder;
 import io.undertow.util.AttachmentKey;
+import io.undertow.util.AttachmentList;
 import io.undertow.util.HttpString;
 
 /**
@@ -78,7 +80,7 @@ public class LwiHandler implements HttpHandler {
 		try {			
 			
 			String lwiRequestId = generateLwiReqId();
-
+			
 			exchange.getRequestHeaders().add(new HttpString(LWI_REQUEST_ID_KEY), lwiRequestId);
 
 			log.info(String.format(
@@ -91,12 +93,12 @@ public class LwiHandler implements HttpHandler {
 			}
 
 			
-			boolean requestBuffering = validationType != LwiValidationType.NO;
+			boolean requestBufferingNeed = validationType != LwiValidationType.NO;
 
 			HttpHandler nnnext = next;
 
-			// proxy
-			LwiProxyHandler proxyhandler = new LwiProxyHandler(backEndServiceUrl, backEndConnections, requestTimeout);
+			// proxy						
+			LwiProxyHandler proxyhandler = new LwiProxyHandler(backEndServiceUrl, backEndConnections, requestTimeout,next);
 			nnnext = proxyhandler;
 
 			// validation
@@ -108,9 +110,10 @@ public class LwiHandler implements HttpHandler {
 			nnnext = lwiLogHandler;
 
 			// request buffer
-			LwiRequestBufferingHandler lwiMessageHandler = new LwiRequestBufferingHandler(nnnext, bufferSize, requestBuffering);
+			LwiRequestBufferningHandler2 lwiMessageHandler = new LwiRequestBufferningHandler2(nnnext, bufferSize, requestBufferingNeed);
 			nnnext = lwiMessageHandler;
 				
+			
 			// security
 			LwiSecurityHandler securityHandler = new LwiSecurityHandler(nnnext, skipAuthentication);			
 			nnnext = securityHandler;
@@ -165,7 +168,17 @@ public class LwiHandler implements HttpHandler {
 	}
 
 	public static String getLwiRequest(HttpServerExchange exchange) throws UnsupportedEncodingException {
-		return Connectors.getRequest(exchange, "UTF-8");
+		
+		AttachmentList<String> attachments = exchange.getAttachment(LwiRequestBufferningHandler2.LWI_ATTACHED_MSG);
+			
+		if ( attachments != null ) {
+		
+			String bufferedData = (String) attachments.get(0);			    		
+	        return bufferedData.toString();					
+		} else {
+			return Connectors.getRequest(exchange, "UTF-8");	
+		}
+		
 	}
 	
 	public Integer getMaxRequests() {
@@ -193,7 +206,6 @@ public class LwiHandler implements HttpHandler {
 	}
 	
 	
-
 	public Boolean getSkipAuthentication() {
 		return skipAuthentication;
 	}
@@ -242,7 +254,7 @@ public class LwiHandler implements HttpHandler {
 		if (queueSize == null) {
 			throw new RuntimeException("Set the LwiHandler.queueSize value properly! e.g.:  20");
 		}
-
+/* ReverseProxy standalone.xml beallitas miatt ez lehet null, erre figyel
 		if (backEndConnections == null) {
 			throw new RuntimeException("Set the LwiHandler.backEndConnections value properly! e.g.:  10");
 		}
@@ -250,7 +262,7 @@ public class LwiHandler implements HttpHandler {
 		if (backEndServiceUrl == null) {
 			throw new RuntimeException("Set the LwiHandler.backEndServiceUrl value properly! e.g.:  http://localhost:8091/lwi/cnr/getMsisdn");
 		}
-
+*/
 		if (requestTimeout == null) {
 			throw new RuntimeException("Set the LwiHandler.requestTimeout value properly! e.g.:  10000");
 		}

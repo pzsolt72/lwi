@@ -97,7 +97,7 @@ public class LwiHandler2 implements HttpHandler {
 			HttpHandler nnnext = next;
 
 			// proxy
-			LwiProxyHandler proxyhandler = new LwiProxyHandler(backEndServiceUrl, backEndConnections, requestTimeout);
+			LwiProxyHandler proxyhandler = new LwiProxyHandler(backEndServiceUrl, backEndConnections, requestTimeout,next);
 			nnnext = proxyhandler;
 
 			// request buffer

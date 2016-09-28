@@ -6,16 +6,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jboss.logging.Logger;
+import org.xnio.ssl.XnioSsl;
 
 import hu.telekom.lwi.plugin.Connectors;
 import hu.telekom.lwi.plugin.LwiHandler;
 import hu.telekom.lwi.plugin.data.LwiCall;
+import io.undertow.protocols.ssl.UndertowXnioSsl;
 import io.undertow.server.ExchangeCompletionListener;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.ResponseCodeHandler;
 import io.undertow.server.handlers.proxy.LoadBalancingProxyClient;
 import io.undertow.server.handlers.proxy.ProxyHandler;
+import io.undertow.websockets.jsr.DefaultWebSocketClientSslProvider;
 
 public class LwiProxyHandler implements HttpHandler, ExchangeCompletionListener {
 
@@ -24,14 +27,19 @@ public class LwiProxyHandler implements HttpHandler, ExchangeCompletionListener 
 
 	private static final Logger log = Logger.getLogger(LwiProxyHandler.class);	
 
-	private ProxyHandler proxyHandler;
+	private HttpHandler next;
 	private String backEndServiceUrl;
 	private Integer backEndConnections;
 
-	public LwiProxyHandler(String backEndServiceUrl, Integer backEndConnections, Integer requestTimeout) {
+	public LwiProxyHandler(String backEndServiceUrl, Integer backEndConnections, Integer requestTimeout, HttpHandler next) {
 		this.backEndConnections = backEndConnections;
 		this.backEndServiceUrl = backEndServiceUrl;
-		this.proxyHandler = new ProxyHandler(getProxyClient(), requestTimeout, ResponseCodeHandler.HANDLE_404);
+		// ha nincs beallitva a backEndServiceUrl, akkor a proxy a handleren kivul van beallitva
+		if ( backEndServiceUrl!=null && !backEndServiceUrl.isEmpty()) {					
+			this.next = new ProxyHandler(getProxyClient(), requestTimeout, ResponseCodeHandler.HANDLE_404);
+		} else {
+			this.next = next;
+		}
 	}
 
 	@Override
@@ -43,7 +51,7 @@ public class LwiProxyHandler implements HttpHandler, ExchangeCompletionListener 
 
 		Connectors.pushRequest(exchange);
 		lwiCall.setServiceCalled();
-		proxyHandler.handleRequest(exchange);
+		next.handleRequest(exchange);
 	}
 
 	@Override
