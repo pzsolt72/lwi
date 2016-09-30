@@ -1,23 +1,10 @@
 package hu.telekom.lwi.plugin.validation;
 
-import java.util.ArrayList;
-
 import org.jboss.logging.Logger;
-
-import com.eviware.soapui.SoapUI;
-import com.eviware.soapui.impl.WsdlInterfaceFactory;
-import com.eviware.soapui.impl.wsdl.WsdlInterface;
-import com.eviware.soapui.impl.wsdl.WsdlOperation;
-import com.eviware.soapui.impl.wsdl.WsdlProject;
-import com.eviware.soapui.impl.wsdl.WsdlProjectFactory;
-import com.eviware.soapui.impl.wsdl.WsdlRequest;
-import com.eviware.soapui.impl.wsdl.submit.WsdlMessageExchange;
-import com.eviware.soapui.impl.wsdl.support.wsdl.WsdlContext;
-import com.eviware.soapui.impl.wsdl.support.wsdl.WsdlValidator;
-import com.eviware.soapui.impl.wsdl.teststeps.WsdlResponseMessageExchange;
-import com.eviware.soapui.model.workspace.WorkspaceFactory;
-import com.eviware.soapui.settings.WsdlSettings;
-import com.eviware.soapui.support.editor.xml.support.ValidationError;
+import org.reficio.ws.SoapValidationException;
+import org.reficio.ws.builder.SoapBuilder;
+import org.reficio.ws.builder.SoapOperation;
+import org.reficio.ws.builder.core.Wsdl;
 
 import hu.telekom.lwi.plugin.LwiHandler;
 import hu.telekom.lwi.plugin.data.LwiCall;
@@ -96,61 +83,25 @@ public class LwiValidationHandler implements HttpHandler {
             } else {
                 log.info(String.format("[%s] LwiValidationHandler - parsing wsdl (%s)...", lwiRequestId, wsdlLocation));
 
-                SoapUI.getSettings().setBoolean(WsdlSettings.STRICT_SCHEMA_TYPES, false);
-                WsdlContext wsdlcontext = new WsdlContext(wsdlLocation/*, new WsdlInterface(null, null)*/);
+                Wsdl wsdl = Wsdl.parse(wsdlLocation);
 
-                try {
-	                wsdlcontext.load();
-	                
-	                WsdlValidator validator = new WsdlValidator(wsdlcontext);
-
-	                validator.validateXml(reqContent, new ArrayList<>()); // ez csak a wsdl validacio -> az megy
-
-//	                final WsdlProject wsdlProject = new WsdlProject();
-//        			final WsdlInterface[] wsdlInterfaces = WsdlInterfaceFactory.importWsdl(wsdlProject, wsdlLocation, true);
-
-	                WsdlOperation operation = wsdlcontext.getInterface().getOperationAt(0); // itt sajnos az interface mindig null -> fent talan kellene inicializalni, de akkor meg nem fordul, mert nem latja a WsdlInterfaceConfig-ot
-	                WsdlRequest request = operation.addNewRequest("request");
-	            	
-	                WsdlResponseMessageExchange messageExchange = new WsdlResponseMessageExchange(request);
-	                messageExchange.setRequestContent(reqContent);
-	                
-		            ValidationError[] errors = validator.assertRequest(messageExchange, false);
-	                
-	                if (errors.length > 0) {
-	                	String error = "request is NOT VALID. Found " + errors.length + "errors.";
-	                    int errCnt = 1;
-	                    for (ValidationError err : errors) {
-	                    	error += "\n#" + (errCnt++) + ": " + err.toString();
-	                    }
-	                	throw new LwiValidationException(error);
-	                }
-                } catch (Exception e) {
-                	e.printStackTrace();
-                	throw e;
+                if (wsdl.getBindings() == null || wsdl.getBindings().size() == 0) {
+                	throw new Exception("no bindings found in wsdl");
+                } else {
+                    String localPart = wsdl.getBindings().get(0).getLocalPart();
+                    SoapBuilder builder = wsdl.binding().localPart(localPart).find();
+                    SoapOperation op = builder.getOperations().get(0);
+                    try {
+                        builder.validateInputMessage(op, reqContent);
+                    } catch (SoapValidationException e) {
+                    	String error = "request is NOT VALID. Found " + e.getErrors().size() + "errors.";
+                        int errCnt = 1;
+                        for (AssertionError err : e.getErrors()) {
+                        	error += "\n#" + (errCnt++) + ": " + err.getMessage();
+                        }
+                    	throw new LwiValidationException(error);
+                    }
                 }
-//                
-//                
-//                System.out.println(org.reficio.ws.legacy.SoapLegacyFacade.class.getResource("/xsds/xop.xsd"));
-//                Wsdl wsdl = Wsdl.parse(wsdlLocation);
-//
-//                if (wsdl.getBindings() == null || wsdl.getBindings().size() == 0) {
-//                	throw new Exception("no bindings found in wsdl");
-//                } else {
-//                    String localPart = wsdl.getBindings().get(0).getLocalPart();
-//                    SoapBuilder builder = wsdl.binding().localPart(localPart).find();
-//                    SoapOperation op = builder.getOperations().get(0);
-//                    try {
-//                        builder.validateInputMessage(op, reqContent);
-//                    } catch (SoapValidationException e) {
-//                    	String error = "request is NOT VALID. Found " + e.getErrors().size() + "errors.";
-//                        int errCnt = 1;
-//                        for (AssertionError err : e.getErrors()) {
-//                        	error += "\n#" + (errCnt++) + ": " + err.getMessage();
-//                        }
-//                    	throw new LwiValidationException(error);
-//                    }
-//                }
             }
         }
     }

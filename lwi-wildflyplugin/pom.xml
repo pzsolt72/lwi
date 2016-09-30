@@ -60,14 +60,29 @@
 		</dependency>
 		<!-- dependencies for wsdl based request validation -->
 		<dependency>
-		    <groupId>com.github.redfish4ktc.soapui</groupId>
-		    <artifactId>soapui</artifactId>
-		    <version>4.0.1.0</version>
+			<groupId>org.reficio</groupId>
+			<artifactId>soap-builder</artifactId>
+			<version>1.0.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.xmlbeans</groupId>
-			<artifactId>xmlbeans</artifactId>
-			<version>2.6.0</version>
+			<groupId>org.reficio</groupId>
+			<artifactId>soap-legacy</artifactId>
+			<version>1.0.0-SNAPSHOT</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>xbean</artifactId>
+					<groupId>xmlbeans</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>xmlbeans-xmlpublic</artifactId>
+					<groupId>org.apache.xmlbeans</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.xmlbeans</groupId>
+		    <artifactId>xmlbeans</artifactId>
+		    <version>2.6.0</version>
 		</dependency>
 	</dependencies>
 	<!-- repository for wsdl based request validation libraries -->
