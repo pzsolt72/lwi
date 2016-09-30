@@ -55,6 +55,7 @@ public class LwiHandler implements HttpHandler {
 	private Integer queueSize;
 	private LwiLogLevel logLevel;
 	private LwiValidationType validationType;
+	private Boolean forceValidation = false;
 	private Boolean skipAuthentication = false;
 	private String backEndServiceUrl;
 	private Integer backEndConnections;
@@ -102,7 +103,7 @@ public class LwiHandler implements HttpHandler {
 			nnnext = proxyhandler;
 
 			// validation
-			LwiValidationHandler validationHandler = new LwiValidationHandler(nnnext, validationType, backEndServiceUrl + "?WSDL");
+			LwiValidationHandler validationHandler = new LwiValidationHandler(nnnext, validationType, backEndServiceUrl + "?WSDL", forceValidation);
 			nnnext = validationHandler;
 
 			// log
@@ -110,7 +111,7 @@ public class LwiHandler implements HttpHandler {
 			nnnext = lwiLogHandler;
 
 			// request buffer
-			LwiRequestBufferningHandler2 lwiMessageHandler = new LwiRequestBufferningHandler2(nnnext, bufferSize, requestBufferingNeed);
+			LwiRequestBufferningHandler lwiMessageHandler = new LwiRequestBufferningHandler(nnnext, bufferSize, requestBufferingNeed);
 			nnnext = lwiMessageHandler;
 				
 			
@@ -168,17 +169,7 @@ public class LwiHandler implements HttpHandler {
 	}
 
 	public static String getLwiRequest(HttpServerExchange exchange) throws UnsupportedEncodingException {
-		
-		AttachmentList<String> attachments = exchange.getAttachment(LwiRequestBufferningHandler2.LWI_ATTACHED_MSG);
-			
-		if ( attachments != null ) {
-		
-			String bufferedData = (String) attachments.get(0);			    		
-	        return bufferedData.toString();					
-		} else {
-			return Connectors.getRequest(exchange, "UTF-8");	
-		}
-		
+		return Connectors.getRequest(exchange, "UTF-8");	
 	}
 	
 	public Integer getMaxRequests() {
@@ -205,41 +196,24 @@ public class LwiHandler implements HttpHandler {
 		this.validationType = LwiValidationType.valueOf(validationType);
 	}
 	
-	
-	public Boolean getSkipAuthentication() {
-		return skipAuthentication;
+	public void setForceValidation(Boolean forceValidation) {
+		this.forceValidation = forceValidation;
 	}
 
 	public void setSkipAuthentication(Boolean skipAuthentication) {
 		this.skipAuthentication = skipAuthentication;
 	}
 
-	public String getBackEndServiceUrl() {
-		return backEndServiceUrl;
-	}
-
 	public void setBackEndServiceUrl(String backEndServiceUrl) {
 		this.backEndServiceUrl = backEndServiceUrl;
-	}
-
-	public Integer getBackEndConnections() {
-		return backEndConnections;
 	}
 
 	public void setBackEndConnections(Integer backEndConnections) {
 		this.backEndConnections = backEndConnections;
 	}
 
-	public Integer getRequestTimeout() {
-		return requestTimeout;
-	}
-
 	public void setRequestTimeout(Integer requestTimeout) {
 		this.requestTimeout = requestTimeout;
-	}
-
-	public Integer getBufferSize() {
-		return bufferSize;
 	}
 
 	public void setBufferSize(Integer bufferSize) {
