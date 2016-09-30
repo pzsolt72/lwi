@@ -29,11 +29,13 @@ public class Connectors extends io.undertow.server.Connectors {
             System.arraycopy(buffers, 0, newArray, existing.length, buffers.length);
         }
         exchange.putAttachment(BUFFERED_REQUEST_DATA, newArray);
+        
+        // FIXME check whether it is really necessary
+        io.undertow.server.Connectors.ungetRequestBytes(exchange, buffers);
+        
         exchange.addExchangeCompleteListener(new ExchangeCompletionListener() {
             @Override
             public void exchangeEvent(HttpServerExchange exchange, NextListener nextListener) {
-            	String lwiRequestId = LwiHandler.getLwiRequestId(exchange);
-            	System.out.println("### Buffered data closed for exchange: "+lwiRequestId);
                 PooledByteBuffer[] bufs = exchange.getAttachment(BUFFERED_REQUEST_DATA);
                 if (bufs != null) {
                     for (PooledByteBuffer i : bufs) {
@@ -68,11 +70,12 @@ public class Connectors extends io.undertow.server.Connectors {
 	}
     
     public static void pushRequest(final HttpServerExchange exchange) {
-        PooledByteBuffer[] bufferedData = exchange.getAttachment(BUFFERED_REQUEST_DATA);
-        exchange.removeAttachment(BUFFERED_REQUEST_DATA);
-        if (bufferedData != null) {
-        	io.undertow.server.Connectors.ungetRequestBytes(exchange, bufferedData);
-        }
+    	// FIXME uncomment when ungetRequestBytes method not adding request to original location
+//        PooledByteBuffer[] bufferedData = exchange.getAttachment(BUFFERED_REQUEST_DATA);
+//        exchange.removeAttachment(BUFFERED_REQUEST_DATA);
+//        if (bufferedData != null) {
+//        	io.undertow.server.Connectors.ungetRequestBytes(exchange, bufferedData);
+//        }
     }
     
 }

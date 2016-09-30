@@ -18,6 +18,7 @@ public class LwiCall {
 	private String caller;
 	private String provider;
 	private String operation;
+	private String accessPointRoot;
 	private long requestStarted;
 	private long serviceCalled;
 	private long serviceReturned;
@@ -40,10 +41,13 @@ public class LwiCall {
 		for (int i = firstElementOnPath; i < requestPath.length; i++) {
 			if (i >= requestPath.length - 1) {
 				operation = requestPath[i];
-			} else if (i == firstElementOnPath) {
-				provider = requestPath[i];
 			} else {
-				provider += "."+requestPath[i];
+				accessPointRoot = requestPath[i];
+				if (i == firstElementOnPath) {
+					provider = accessPointRoot;
+				} else {
+					provider += "."+accessPointRoot;
+				}
 			}
 		}
 	}
@@ -65,7 +69,7 @@ public class LwiCall {
 	}
 	
 	public String getAccessPoint() {
-		return provider + PROVIDER_SERVICE_SEPARATOR + operation;
+		return accessPointRoot + PROVIDER_SERVICE_SEPARATOR + operation;
 	}
 	
 	public long getRequestStarted() {

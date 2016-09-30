@@ -1,9 +1,7 @@
 package hu.telekom.lwi.plugin.validation;
 
 import java.util.ArrayList;
-import java.util.List;
 
-import org.apache.xmlbeans.XmlError;
 import org.jboss.logging.Logger;
 
 import com.eviware.soapui.SoapUI;
@@ -15,11 +13,9 @@ import com.eviware.soapui.impl.wsdl.WsdlProjectFactory;
 import com.eviware.soapui.impl.wsdl.WsdlRequest;
 import com.eviware.soapui.impl.wsdl.submit.WsdlMessageExchange;
 import com.eviware.soapui.impl.wsdl.support.wsdl.WsdlContext;
-import com.eviware.soapui.impl.wsdl.support.wsdl.WsdlImporter;
-import com.eviware.soapui.impl.wsdl.support.wsdl.WsdlLoader;
 import com.eviware.soapui.impl.wsdl.support.wsdl.WsdlValidator;
 import com.eviware.soapui.impl.wsdl.teststeps.WsdlResponseMessageExchange;
-import com.eviware.soapui.model.iface.Operation;
+import com.eviware.soapui.model.workspace.WorkspaceFactory;
 import com.eviware.soapui.settings.WsdlSettings;
 import com.eviware.soapui.support.editor.xml.support.ValidationError;
 
@@ -40,22 +36,24 @@ public class LwiValidationHandler implements HttpHandler {
     private HttpHandler next = null;
     private LwiValidationType validationType = LwiValidationType.MSG;
     private String wsdlLocation = null;
+    private boolean forceValidation = false;
 
     public LwiValidationHandler(HttpHandler next) {
         this.next = next;
     }
 
-    public LwiValidationHandler(HttpHandler next, LwiValidationType validationType, String wsdlLocation) {
+    public LwiValidationHandler(HttpHandler next, LwiValidationType validationType, String wsdlLocation, boolean forceValidation) {
         this.next = next;
         this.validationType = validationType;
         this.wsdlLocation = wsdlLocation;
+        this.forceValidation = forceValidation;
     }
 
     @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
         String lwiRequestId = LwiHandler.getLwiRequestId(exchange);
         
-        log.info(String.format("[%s] LwiValidationHandler - start request validation (%s)...", lwiRequestId, validationType.name()));
+        log.info(String.format("[%s] LwiValidationHandler - start request validation (%s, force: %s)...", lwiRequestId, validationType.name(), Boolean.toString(forceValidation)));
 
         LwiCall lwiCall = LwiHandler.getLwiCall(exchange);
         try {
@@ -67,7 +65,7 @@ public class LwiValidationHandler implements HttpHandler {
 			            log.warn(String.format("[%s] LwiValidationHandler - validation cannot be done on MSG level because the request is too long - fall back to CTX level!", lwiRequestId));
 					}
 				case CTX:
-					validateByContext(LwiHandler.getLwiRequestData(exchange), !lwiCall.isPartial());
+					validateByContext(LwiHandler.getLwiRequestData(exchange), !lwiCall.isPartial() || forceValidation);
 		            log.info(String.format("[%s] LwiValidationHandler - validation completed!", lwiRequestId));
 					break;
 				default: 
@@ -98,32 +96,26 @@ public class LwiValidationHandler implements HttpHandler {
             } else {
                 log.info(String.format("[%s] LwiValidationHandler - parsing wsdl (%s)...", lwiRequestId, wsdlLocation));
 
-//                List<XmlError> xmlErrors = new ArrayList<>();
                 SoapUI.getSettings().setBoolean(WsdlSettings.STRICT_SCHEMA_TYPES, false);
-                WsdlContext wsdlcontext = new WsdlContext(wsdlLocation);
-//                
-//                validator.validateXml(reqContent, xmlErrors);
-//                if (!xmlErrors.isEmpty()) {
-//                	String error = "request is NOT VALID. Found " + errors.size() + "errors.";
-//                    int errCnt = 1;
-//                    for (XmlError err : xmlErrors) {
-//                    	error += "\n#" + (errCnt++) + ": " + err.getMessage();
-//                    }
-//                	throw new LwiValidationException(error);
-//                }
-                
+                WsdlContext wsdlcontext = new WsdlContext(wsdlLocation/*, new WsdlInterface(null, null)*/);
+
                 try {
 	                wsdlcontext.load();
 	                
-	                WsdlOperation operation = (WsdlOperation) wsdlcontext.getInterface().getOperationList().get(0);
+	                WsdlValidator validator = new WsdlValidator(wsdlcontext);
+
+	                validator.validateXml(reqContent, new ArrayList<>()); // ez csak a wsdl validacio -> az megy
+
+//	                final WsdlProject wsdlProject = new WsdlProject();
+//        			final WsdlInterface[] wsdlInterfaces = WsdlInterfaceFactory.importWsdl(wsdlProject, wsdlLocation, true);
+
+	                WsdlOperation operation = wsdlcontext.getInterface().getOperationAt(0); // itt sajnos az interface mindig null -> fent talan kellene inicializalni, de akkor meg nem fordul, mert nem latja a WsdlInterfaceConfig-ot
 	                WsdlRequest request = operation.addNewRequest("request");
-	
-	                WsdlValidator validator = new WsdlValidator((WsdlContext) (operation.getInterface()).getDefinitionContext());
-	
-	                WsdlResponseMessageExchange wsdlResponseMessageExchange = new WsdlResponseMessageExchange(request);
-	                wsdlResponseMessageExchange.setRequestContent(reqContent);
-	
-	                ValidationError[] errors = validator.assertRequest(wsdlResponseMessageExchange, false);
+	            	
+	                WsdlResponseMessageExchange messageExchange = new WsdlResponseMessageExchange(request);
+	                messageExchange.setRequestContent(reqContent);
+	                
+		            ValidationError[] errors = validator.assertRequest(messageExchange, false);
 	                
 	                if (errors.length > 0) {
 	                	String error = "request is NOT VALID. Found " + errors.length + "errors.";
@@ -163,12 +155,12 @@ public class LwiValidationHandler implements HttpHandler {
         }
     }
 
-    private void validateByContext(LwiRequestData lwiRequestData, boolean failOnMissing) throws Exception {
+    private void validateByContext(LwiRequestData lwiRequestData, boolean forceValidation) throws Exception {
         if (lwiRequestData == null) {
         	throw new Exception("Context parse failed!");
         }
 
-        if (lwiRequestData.parseRequestRequired() && failOnMissing) {
+        if (lwiRequestData.parseRequestRequired() && forceValidation) {
         	throw new LwiValidationException("Attribute validation failed!");
         }
     }
