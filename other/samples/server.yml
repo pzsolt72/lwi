@@ -12,3 +12,7 @@ logger:
 load:
     - maxRequests: 100
     - queueSize: 100
+
+jks:
+    - path: /home/dockeru/lwi_scripts/wildfly-rsa.jks
+      password: 123456
