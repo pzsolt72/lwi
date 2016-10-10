@@ -34,12 +34,16 @@ public class LwiProxyHandler implements HttpHandler, ExchangeCompletionListener 
 	public LwiProxyHandler(String backEndServiceUrl, Integer backEndConnections, Integer requestTimeout, HttpHandler next) {
 		this.backEndConnections = backEndConnections;
 		this.backEndServiceUrl = backEndServiceUrl;
+		// Figyelem!!! Egyelore a https miatt a gyari revers proxy mukodik!!!!
 		// ha nincs beallitva a backEndServiceUrl, akkor a proxy a handleren kivul van beallitva
+		/*
 		if ( backEndServiceUrl!=null && !backEndServiceUrl.isEmpty()) {					
 			this.next = new ProxyHandler(getProxyClient(), requestTimeout, ResponseCodeHandler.HANDLE_404);
 		} else {
 			this.next = next;
 		}
+		*/
+		this.next = next;
 	}
 
 	@Override

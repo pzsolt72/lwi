@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<lwi:security xmlns:lwi="http://telekom.hu/LwiSecurity" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://telekom.hu/LwiSecurity LwiSecurity.xsd ">
-  <lwi:caller>
-    <lwi:name>test</lwi:name>
-    <lwi:password>test</lwi:password>
-    <lwi:allowedOperation>getMsisdn</lwi:allowedOperation>
-    <lwi:allowedOperation>getDocument</lwi:allowedOperation>
-  </lwi:caller>
-</lwi:security>

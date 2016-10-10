@@ -27,6 +27,23 @@ public class LwiValidationHandler implements HttpHandler {
     private String wsdlLocation = null;
     private boolean forceValidation = false;
     private ConcurrentHashMap<String, Wsdl> wsdlCache = new ConcurrentHashMap<>();
+    
+    
+    
+    static {
+	    //for localhost testing only
+	    javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(
+	    new javax.net.ssl.HostnameVerifier(){
+
+	        public boolean verify(String hostname,
+	                javax.net.ssl.SSLSession sslSession) {
+	            if (hostname.equals("localhost")) {
+	                return true;
+	            }
+	            return false;
+	        }
+	    });
+	}
 
     public LwiValidationHandler(HttpHandler next) {
         this.next = next;
@@ -67,7 +84,7 @@ public class LwiValidationHandler implements HttpHandler {
                 log.warn(String.format("[%s] LwiValidationHandler - validation failed!", lwiRequestId));
                 exchange.setStatusCode(VALIDATION_ERROR_CODE);
         	} else {
-        		log.error(String.format("[%s] LwiValidationHandler - validation error!", lwiRequestId));
+        		log.error(String.format("[%s] LwiValidationHandler - validation error!", lwiRequestId),e);
                 exchange.setStatusCode(INTERNAL_ERROR_CODE);
         	}
             Sender sender = exchange.getResponseSender();
@@ -77,7 +94,7 @@ public class LwiValidationHandler implements HttpHandler {
 
     private void validateByMsg(HttpServerExchange exchange, String lwiRequestId) throws Exception {
         String reqContent = LwiHandler.getLwiRequest(exchange);
-
+        
         if (reqContent.length() == 0) {
         	throw new Exception("no msg found in lwi context");
         } else {
