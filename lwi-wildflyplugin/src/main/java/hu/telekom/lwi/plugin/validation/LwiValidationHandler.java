@@ -1,5 +1,7 @@
 package hu.telekom.lwi.plugin.validation;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.jboss.logging.Logger;
 import org.reficio.ws.SoapValidationException;
 import org.reficio.ws.builder.SoapBuilder;
@@ -24,6 +26,7 @@ public class LwiValidationHandler implements HttpHandler {
     private LwiValidationType validationType = LwiValidationType.MSG;
     private String wsdlLocation = null;
     private boolean forceValidation = false;
+    private ConcurrentHashMap<String, Wsdl> wsdlCache = new ConcurrentHashMap<>();
 
     public LwiValidationHandler(HttpHandler next) {
         this.next = next;
@@ -81,9 +84,18 @@ public class LwiValidationHandler implements HttpHandler {
             if (wsdlLocation == null) {
             	throw new Exception("no wsdlLocation filter param defined");
             } else {
-                log.info(String.format("[%s] LwiValidationHandler - parsing wsdl (%s)...", lwiRequestId, wsdlLocation));
-
-                Wsdl wsdl = Wsdl.parse(wsdlLocation);
+                
+            	log.debug(String.format("[%s] LwiValidationHandler - looking up wsdl key=(%s)...", lwiRequestId, wsdlLocation));
+                Wsdl wsdl = wsdlCache.get(wsdlLocation);
+                
+                if ( wsdl == null ) {
+                	log.debug(String.format("[%s] LwiValidationHandler - parsing wsdl (%s)...", lwiRequestId, wsdlLocation));
+            		wsdl = Wsdl.parse(wsdlLocation);
+            		log.debug(String.format("[%s] LwiValidationHandler - caching wsdl (%s)...", lwiRequestId, wsdlLocation));
+            		wsdlCache.put(wsdlLocation, wsdl);
+                } else {
+                	log.debug(String.format("[%s] LwiValidationHandler - cached wsdl found!", lwiRequestId));
+                } 
 
                 if (wsdl.getBindings() == null || wsdl.getBindings().size() == 0) {
                 	throw new Exception("no bindings found in wsdl");
